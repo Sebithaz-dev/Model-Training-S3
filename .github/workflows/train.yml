@@ -35,7 +35,7 @@ jobs:
       - name: Descargar datos de entrenamiento desde S3
         run: |
           mkdir -p data
-          aws s3 cp s3://${{ secrets.S3_BUCKET_NAME }}/${{ vars.S3_DATA_KEY || 'landing/datos.parquet' }} data/datos.parquet
+          aws s3 cp s3://${{ secrets.S3_BUCKET_NAME }}/${{ vars.S3_DATA_KEY || 'curated/citibike_trips/citibike_curated.snappy.parquet' }} data/datos.parquet
 
       - name: Entrenar modelo
         run: python -m ml.train --input data/datos.parquet
