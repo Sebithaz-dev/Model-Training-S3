@@ -32,16 +32,6 @@ jobs:
           aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
           aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
 
-      - name: Debug S3 dataset path
-        run: |
-          echo "Listando carpeta curated/"
-          aws s3 ls "s3://${S3_BUCKET_NAME}/curated/" --recursive || true
-      
-          echo "Verificando dataset exacto:"
-          aws s3api head-object \
-            --bucket "$S3_BUCKET_NAME" \
-            --key "$S3_DATA_KEY"
-
       - name: Descargar datos de entrenamiento desde S3
         run: |
           mkdir -p data
