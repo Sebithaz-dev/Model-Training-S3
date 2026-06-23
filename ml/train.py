@@ -78,7 +78,8 @@ def entrenar(ruta_parquet):
     )
     roc = roc_auc_score(y_test, y_prob)
     print(f"      ROC-AUC: {roc:.4f}")
-    print(f"      Confusion Matrix:\n      {confusion_matrix(y_test, y_pred)}")
+    cm = confusion_matrix(y_test, y_pred)
+    print(f"      Confusion Matrix:\n      {cm}")
 
     print(f"[6/6] Guardando artefactos en {RUTA_ARTEFACTOS}/")
     joblib.dump(modelo, os.path.join(RUTA_ARTEFACTOS, "modelo.pkl"))
@@ -92,9 +93,20 @@ def entrenar(ruta_parquet):
         os.path.join(RUTA_ARTEFACTOS, "transformers.pkl"),
     )
 
+    tn, fp, fn, tp = cm.ravel()
+    report = classification_report(y_test, y_pred, target_names=["corto", "largo"], output_dict=True)
     metricas = {
         "roc_auc": round(roc, 4),
+        "gini": round(2 * roc - 1, 4),
+        "accuracy": round(report["accuracy"], 4),
+        "recall": round(report["largo"]["recall"], 4),
+        "precision": round(report["largo"]["precision"], 4),
+        "f1_score": round(report["largo"]["f1-score"], 4),
+        "matriz_confusion": [[int(tn), int(fp)], [int(fn), int(tp)]],
         "umbral_largo_segundos": 900,
+        "proporcion_largos": round(y.mean(), 3),
+        "train_size": X_train.shape[0],
+        "test_size": X_test.shape[0],
         "features": feature_cols,
     }
     with open(os.path.join(RUTA_ARTEFACTOS, "metricas.json"), "w") as f:
