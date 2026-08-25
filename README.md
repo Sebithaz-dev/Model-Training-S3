@@ -152,9 +152,11 @@ Las métricas se calculan sobre el test set (80/20 split estratificado) y se gua
 
 ### `ci.yml` — lint y tests (calidad continua)
 
-- **Triggers:** `push` a `develop` y `pull_request` a `main`.
+- **Triggers:** `pull_request` a `main` (gate de merge, obligatorio verde) y `push` a `main` (verificación post-merge del trunk).
 - **Pasos:** checkout → setup Python 3.11 (cache de pip) → instalar `requirements-dev.txt` → `ruff check` → `pytest`.
-- **Propósito:** garantizar que todo lo que llega a `main` o se integra en `develop` pasa lint y tests. Bloquea el merge si falla.
+- **Propósito:** garantizar que todo lo que llega a `main` pasa lint y tests. Bloquea el merge si falla.
+
+> **Nota sobre IE3/IE4:** el enunciado pide disparar la CI en "push a `develop` y pull request a `main`". Como este repositorio usa **TBD puro** (sin rama `develop` — ver [justificación](#estrategia-de-branching-trunk-based-development-tbd)), el trigger `push a develop` se sustituye por `push a main`, que cumple el mismo rol en TBD: verificar el trunk tras cada integración.
 
 ### `train.yml` — entrenamiento + subida a S3
 
@@ -167,7 +169,7 @@ Las métricas se calculan sobre el test set (80/20 split estratificado) y se gua
 
 ## Estrategia de branching: Trunk-Based Development (TBD)
 
-Este repositorio usa **trunk-based development** en lugar de GitFlow.
+Este repositorio usa **trunk-based development** puro, no GitFlow.
 
 ### Justificación
 
@@ -175,16 +177,24 @@ Este repositorio usa **trunk-based development** en lugar de GitFlow.
 - **Ramas de vida corta.** Las `feature/*` y `hotfix/*` duran **menos de 2-3 días** y se integran por PR *squash* a `main`. Esto reduce el riesgo de merge, hace los cambios revisables en pequeño y mantiene el historial lineal y legible.
 - **Equipo pequeño, releases continuos.** GitFlow (con `release/*` de larga duración y `develop` como rama de integración paralela) agrega ceremonia innecesaria para un pipeline de ML que publica artefactos a S3 de forma continua. TBD minimiza la distancia entre *código escrito* y *código en producción*.
 - **Feedback rápido.** Al integrar contra `main` continuamente, los conflictos y los fallos se detectan en horas, no en semanas.
-- **`develop` existe como rama de respaldo/sincronización** (no como rama de integración paralela): se mantiene *fast-forward* con `main` y la CI corre sobre ella para validar cambios de infraestructura o experimentos antes de tocar `main`.
+
+### Por qué no hay rama `develop` (desviación de IE5)
+
+TBD estricto **no usa `develop`** — esa rama es propia de GitFlow, donde sirve de integración paralela a `main`. En TBD todo se integra directamente contra el trunk (`main`), por lo que una rama `develop` sería redundante: solo duplicaría `main` sin aportar valor.
+
+El enunciado IE5 lista las ramas `main`, `develop`, `feature/*` y `hotfix/*` (que es el set canónico de GitFlow). Elegimos TBD y asumimos la desviación: **no mantenemos `develop`** porque su existencia contradiría la estrategia elegida. Mantener una rama vacía solo para cumplir el checklist habría sido deshonesto con la justificación de TBD.
+
+### Sobre `hotfix/*` en TBD
+
+TBD estricto tampoco define un flujo `hotfix/*` distinto: una corrección urgente es simplemente **una rama de vida corta más** que se abre desde `main` y se mergea a `main` por PR. Usamos el prefijo `hotfix/` solo como **convención de naming** para señalar prioridad y alcance (fix urgente de producción), no como un flujo separado con merge a múltiples ramas como en GitFlow. No hay backport a `develop` porque no hay `develop`.
 
 ### Ramas
 
 | Rama | Tipo | Duración | Propósito |
 |---|---|---|---|
-| `main` | Trunk | Permanente | Código en producción. Siempre *deployable*. |
-| `develop` | Espejo de `main` | Permanente | Sincronizada con `main` vía fast-forward. Sirve de superficie para validar pushes directos (la CI corre aquí). |
+| `main` | Trunk | Permanente | Código en producción. Siempre *deployable*. Único destino de merge. |
 | `feature/<nombre>` | Efímera | < 2-3 días | Nueva funcionalidad. Se abre desde `main` y se integra por PR *squash* a `main`. |
-| `hotfix/<nombre>` | Efímera | < 1 día | Corrección urgente. Se abre desde `main`, se integra por PR *squash* a `main` y se backportea a `develop` por fast-forward. |
+| `hotfix/<nombre>` | Efímera | < 1 día | Corrección urgente. Se abre desde `main` y se integra por PR *squash* a `main`. Solo naming, no flujo separado. |
 
 ### Flujo de trabajo
 
@@ -193,19 +203,18 @@ main (trunk, siempre deployable)
  │
  ├── feature/data-validation ──► PR #2 (squash) ──► main
  ├── feature/model-config ─────► PR #3 (squash) ──► main
- ├── hotfix/predict-label-encoder ─► PR #4 (squash) ──► main ──► fast-forward develop
+ ├── hotfix/predict-label-encoder ─► PR #4 (squash) ──► main
  │
- CI (ci.yml): push a develop + PR a main
+ CI (ci.yml): PR a main (gate) + push a main (post-merge)
 ```
 
 1. `git checkout main && git pull`
-2. `git checkout -b feature/<nombre-corto-en-kebab-case>`
+2. `git checkout -b feature/<nombre-corto-en-kebab-case>` (o `hotfix/<...>` si es fix urgente)
 3. Commits pequeños con [Conventional Commits](#convenciones-de-commits).
-4. `git push -u origin feature/<nombre>`
-5. Abrir PR a `main` (la CI corre automáticamente).
+4. `git push -u origin <rama>`
+5. Abrir PR a `main` (la CI corre automáticamente como gate).
 6. Revisión según la [estrategia de revisión](#estrategia-de-revision).
-7. *Squash & merge* a `main`. La rama efímera se borra.
-8. Tras un hotfix, `develop` se sincroniza con `main` por fast-forward.
+7. *Squash & merge* a `main`. La rama efímera se borra. La CI vuelve a correr sobre `main` (post-merge).
 
 ### Convenciones de commits
 
@@ -248,11 +257,10 @@ Reglas:
 |---|---|---|
 | `feature/*` → `main` | **Squash & merge** | CI verde + 1 aprobación |
 | `hotfix/*` → `main` | **Squash & merge** | CI verde + 1 aprobación (revisión acelerada) |
-| `main` → `develop` | **Fast-forward** | Automático tras cada merge a `main` |
 
 - No se hace *merge commit* ni *rebase* directo a `main`: solo squash para mantener un commit por PR.
 - `main` nunca recibe commits directos: todo entra por PR.
-- `develop` nunca recibe commits de feature: solo se sincroniza desde `main`.
+- No hay `develop` ni backports: el trunk es el único destino.
 
 ### Estrategia de revisión
 
