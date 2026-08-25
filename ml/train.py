@@ -11,6 +11,8 @@ from sklearn.metrics import classification_report, confusion_matrix, roc_auc_sco
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 
+from ml.data_validation import validate_dataframe
+
 warnings.filterwarnings("ignore")
 RUTA_ARTEFACTOS = os.path.join(os.path.dirname(__file__), "artefactos")
 
@@ -18,15 +20,22 @@ RUTA_ARTEFACTOS = os.path.join(os.path.dirname(__file__), "artefactos")
 def entrenar(ruta_parquet):
     os.makedirs(RUTA_ARTEFACTOS, exist_ok=True)
 
-    print(f"[1/6] Cargando datos desde: {ruta_parquet}")
+    print(f"[1/7] Cargando datos desde: {ruta_parquet}")
     df = pd.read_parquet(ruta_parquet)
     print(f"      Shape: {df.shape}")
 
-    print("[2/6] Creando variable objetivo (viaje_largo > 15min = 900s)")
+    print("[2/7] Validando schema y calidad de datos")
+    validacion = validate_dataframe(df)
+    for w in validacion.warnings:
+        print(f"      [WARN] {w}")
+    validacion.raise_if_invalid()
+    print("      Schema OK")
+
+    print("[3/7] Creando variable objetivo (viaje_largo > 15min = 900s)")
     df["viaje_largo"] = (df["tripduration"] > 900).astype(int)
     print(f"      Proporcion viajes largos: {df['viaje_largo'].mean():.3f}")
 
-    print("[3/6] Ingenieria de features")
+    print("[4/7] Ingenieria de features")
     df["starttime"] = pd.to_datetime(df["starttime"], errors="coerce")
     df["hour"] = df["starttime"].dt.hour
     df["month"] = df["starttime"].dt.month
@@ -40,7 +49,7 @@ def entrenar(ruta_parquet):
         df["start_station_id"].map(station_freq).fillna(0)
     )
 
-    print("[4/6] Codificando variables categoricas")
+    print("[5/7] Codificando variables categoricas")
     label_encoders = {}
     for col in ["usertype", "gender"]:
         le = LabelEncoder()
@@ -63,7 +72,7 @@ def entrenar(ruta_parquet):
     )
     print(f"      Train: {X_train.shape[0]} | Test: {X_test.shape[0]}")
 
-    print("[5/6] Entrenando Logistic Regression")
+    print("[6/7] Entrenando Logistic Regression")
     modelo = LogisticRegression(class_weight="balanced", max_iter=1000, random_state=42)
     modelo.fit(X_train, y_train)
 
@@ -82,7 +91,7 @@ def entrenar(ruta_parquet):
     cm = confusion_matrix(y_test, y_pred)
     print(f"      Confusion Matrix:\n      {cm}")
 
-    print(f"[6/6] Guardando artefactos en {RUTA_ARTEFACTOS}/")
+    print(f"[7/7] Guardando artefactos en {RUTA_ARTEFACTOS}/")
     joblib.dump(modelo, os.path.join(RUTA_ARTEFACTOS, "modelo.pkl"))
     joblib.dump(
         {
