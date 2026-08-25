@@ -4,3 +4,4 @@ scikit-learn>=1.3
 joblib>=1.3
 boto3>=1.34
 numpy
+pyyaml>=6.0

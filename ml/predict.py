@@ -29,6 +29,9 @@ class Predictor:
         self.scaler = t["scaler"]
         self.station_freq = t["station_freq"]
         self.feature_cols = t["feature_cols"]
+        # Umbral de decision persistido en el artefacto; fallback a 0.65
+        # para modelos entrenados antes de esta feature.
+        self.decision_threshold = t.get("decision_threshold", 0.65)
 
     def predecir(self, datos):
         df = pd.DataFrame([datos])
@@ -45,7 +48,7 @@ class Predictor:
         X = df[self.feature_cols].astype(float)
         X_s = self.scaler.transform(X)
         prob = self.modelo.predict_proba(X_s)[0, 1]
-        pred = int(prob >= 0.65)
+        pred = int(prob >= self.decision_threshold)
         return {
             "probabilidad_largo": round(float(prob), 4),
             "prediccion": pred,
