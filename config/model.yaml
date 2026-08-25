@@ -1,0 +1,37 @@
+# Configuracion del pipeline de entrenamiento Citi Bike.
+# Todos los hiperparametros y umbrales que antes estaban hardcodeados
+# en ml/train.py viven aqui para poder iterar sin tocar codigo.
+
+target:
+  # Umbral en segundos: viaje_largo = 1 si tripduration > trip_long_threshold_seconds
+  trip_long_threshold_seconds: 900
+  # Umbral de decision sobre la probabilidad del modelo
+  decision_threshold: 0.65
+
+split:
+  test_size: 0.2
+  random_state: 42
+  stratify: true
+
+model:
+  class: sklearn.linear_model.LogisticRegression
+  params:
+    class_weight: balanced
+    max_iter: 1000
+    random_state: 42
+
+features:
+  numeric:
+    - hour
+    - month
+    - dayofweek
+    - is_weekend
+    - age
+    - start_station_freq
+  categorical:
+    - usertype
+    - gender
+
+outliers:
+  age_min: 0
+  age_max: 90

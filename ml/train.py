@@ -2,22 +2,33 @@ import argparse
 import json
 import os
 import warnings
+from importlib import import_module
 
 import joblib
 import numpy as np
 import pandas as pd
-from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 
+from ml.config import ModelConfig, load_config
 from ml.data_validation import validate_dataframe
 
 warnings.filterwarnings("ignore")
 RUTA_ARTEFACTOS = os.path.join(os.path.dirname(__file__), "artefactos")
 
 
-def entrenar(ruta_parquet):
+def _resolve_model(cfg: ModelConfig):
+    """Instancia el estimador declarado en la config (modulo.Clase)."""
+    module_path, _, class_name = cfg.model_class.rpartition(".")
+    if not module_path:
+        raise ValueError(f"model.class debe ser 'modulo.Clase', recibido: {cfg.model_class}")
+    cls = getattr(import_module(module_path), class_name)
+    return cls(**cfg.model_params)
+
+
+def entrenar(ruta_parquet, config: ModelConfig | None = None):
+    cfg = config or load_config()
     os.makedirs(RUTA_ARTEFACTOS, exist_ok=True)
 
     print(f"[1/7] Cargando datos desde: {ruta_parquet}")
@@ -31,8 +42,9 @@ def entrenar(ruta_parquet):
     validacion.raise_if_invalid()
     print("      Schema OK")
 
-    print("[3/7] Creando variable objetivo (viaje_largo > 15min = 900s)")
-    df["viaje_largo"] = (df["tripduration"] > 900).astype(int)
+    umbral_s = cfg.trip_long_threshold_seconds
+    print(f"[3/7] Creando variable objetivo (viaje_largo > {umbral_s}s)")
+    df["viaje_largo"] = (df["tripduration"] > umbral_s).astype(int)
     print(f"      Proporcion viajes largos: {df['viaje_largo'].mean():.3f}")
 
     print("[4/7] Ingenieria de features")
@@ -42,7 +54,7 @@ def entrenar(ruta_parquet):
     df["dayofweek"] = df["starttime"].dt.dayofweek
     df["is_weekend"] = df["dayofweek"].isin([5, 6]).astype(int)
     df["age"] = df["year"] - df["birth_year"]
-    df = df[(df["age"] >= 0) & (df["age"] <= 90)].copy()
+    df = df[(df["age"] >= cfg.age_min) & (df["age"] <= cfg.age_max)].copy()
 
     station_freq = df["start_station_id"].value_counts().to_dict()
     df["start_station_freq"] = np.log1p(
@@ -51,33 +63,31 @@ def entrenar(ruta_parquet):
 
     print("[5/7] Codificando variables categoricas")
     label_encoders = {}
-    for col in ["usertype", "gender"]:
+    for col in cfg.categorical_features:
         le = LabelEncoder()
         df[col] = le.fit_transform(df[col].astype(str))
         label_encoders[col] = le
         print(f"      {col}: {list(le.classes_)}")
 
-    feature_cols = [
-        "hour", "month", "dayofweek", "is_weekend", "age",
-        "start_station_freq", "usertype", "gender"
-    ]
+    feature_cols = cfg.feature_cols
     X = df[feature_cols].astype(float)
     y = df["viaje_largo"].values
 
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
 
+    stratify = y if cfg.stratify else None
     X_train, X_test, y_train, y_test = train_test_split(
-        X_scaled, y, test_size=0.2, random_state=42, stratify=y
+        X_scaled, y, test_size=cfg.test_size, random_state=cfg.random_state, stratify=stratify
     )
     print(f"      Train: {X_train.shape[0]} | Test: {X_test.shape[0]}")
 
-    print("[6/7] Entrenando Logistic Regression")
-    modelo = LogisticRegression(class_weight="balanced", max_iter=1000, random_state=42)
+    print(f"[6/7] Entrenando {cfg.model_class}")
+    modelo = _resolve_model(cfg)
     modelo.fit(X_train, y_train)
 
     y_prob = modelo.predict_proba(X_test)[:, 1]
-    y_pred = (y_prob >= 0.65).astype(int)
+    y_pred = (y_prob >= cfg.decision_threshold).astype(int)
     print("\n      Classification Report:")
     separador = chr(10) + "      "
     print(
@@ -99,6 +109,7 @@ def entrenar(ruta_parquet):
             "scaler": scaler,
             "station_freq": station_freq,
             "feature_cols": feature_cols,
+            "decision_threshold": cfg.decision_threshold,
         },
         os.path.join(RUTA_ARTEFACTOS, "transformers.pkl"),
     )
@@ -113,11 +124,14 @@ def entrenar(ruta_parquet):
         "precision": round(report["largo"]["precision"], 4),
         "f1_score": round(report["largo"]["f1-score"], 4),
         "matriz_confusion": [[int(tn), int(fp)], [int(fn), int(tp)]],
-        "umbral_largo_segundos": 900,
+        "umbral_largo_segundos": umbral_s,
+        "umbral_decision": cfg.decision_threshold,
         "proporcion_largos": round(y.mean(), 3),
         "train_size": X_train.shape[0],
         "test_size": X_test.shape[0],
         "features": feature_cols,
+        "modelo": cfg.model_class,
+        "model_params": cfg.model_params,
     }
     with open(os.path.join(RUTA_ARTEFACTOS, "metricas.json"), "w") as f:
         json.dump(metricas, f, indent=2)
@@ -137,5 +151,9 @@ def entrenar(ruta_parquet):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Entrenar clasificador Citibike")
     parser.add_argument("--input", required=True, help="Ruta al archivo .parquet")
+    parser.add_argument(
+        "--config", default=None,
+        help="Ruta al archivo YAML de configuracion (default: config/model.yaml o $MODEL_CONFIG)",
+    )
     args = parser.parse_args()
-    entrenar(args.input)
+    entrenar(args.input, load_config(args.config) if args.config else None)
