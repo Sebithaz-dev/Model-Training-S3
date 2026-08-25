@@ -1,9 +1,10 @@
-import os
 import json
+import os
+import warnings
+
 import joblib
 import numpy as np
 import pandas as pd
-import warnings
 
 warnings.filterwarnings("ignore")
 RUTA_ARTEFACTOS = os.path.join(os.path.dirname(__file__), "artefactos")
