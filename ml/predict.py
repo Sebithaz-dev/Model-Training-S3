@@ -43,7 +43,7 @@ class Predictor:
             df[col] = (
                 df[col]
                 .astype(str)
-                .map(lambda x: le.transform([x])[0] if x in le.classes_ else -1)
+                .map(lambda x, le=le: le.transform([x])[0] if x in le.classes_ else -1)
             )
         X = df[self.feature_cols].astype(float)
         X_s = self.scaler.transform(X)
