@@ -1,8 +1,13 @@
 name: CI
 
+# Trunk-Based Development: un unico trunk (main). La CI se ejecuta:
+#   - en cada pull_request a main  -> gate de merge (obligatorio verde)
+#   - en cada push a main          -> verificacion post-merge del trunk
+# TBD no usa rama develop; el requisito IE3/IE4 pedia "push a develop",
+# que aqui se sustituye por "push a main" (ver README, seccion TBD).
 on:
   push:
-    branches: [develop]
+    branches: [main]
   pull_request:
     branches: [main]
 
