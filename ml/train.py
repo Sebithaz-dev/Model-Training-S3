@@ -1,14 +1,15 @@
-import os
-import json
-import joblib
-import warnings
 import argparse
-import pandas as pd
+import json
+import os
+import warnings
+
+import joblib
 import numpy as np
+import pandas as pd
 from sklearn.linear_model import LogisticRegression
-from sklearn.preprocessing import LabelEncoder, StandardScaler
-from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder, StandardScaler
 
 warnings.filterwarnings("ignore")
 RUTA_ARTEFACTOS = os.path.join(os.path.dirname(__file__), "artefactos")
@@ -68,7 +69,7 @@ def entrenar(ruta_parquet):
 
     y_prob = modelo.predict_proba(X_test)[:, 1]
     y_pred = (y_prob >= 0.65).astype(int)
-    print(f"\n      Classification Report:")
+    print("\n      Classification Report:")
     separador = chr(10) + "      "
     print(
         "      "
