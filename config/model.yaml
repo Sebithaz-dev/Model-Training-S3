@@ -5,19 +5,31 @@
 target:
   # Umbral en segundos: viaje_largo = 1 si tripduration > trip_long_threshold_seconds
   trip_long_threshold_seconds: 900
-  # Umbral de decision sobre la probabilidad del modelo
+  # Umbral de decision de respaldo; si tune_threshold=true se reemplaza por
+  # el umbral que maximiza threshold_metric en el set de validacion.
   decision_threshold: 0.65
+  tune_threshold: true
+  threshold_metric: f1
 
 split:
+  # temporal: ordena por starttime y entrena con el pasado, evalua con el futuro.
+  # random: split aleatorio estratificado (util para comparar contra el baseline).
+  strategy: temporal
   test_size: 0.2
+  validation_size: 0.1
   random_state: 42
   stratify: true
 
 model:
-  class: sklearn.linear_model.LogisticRegression
+  class: sklearn.ensemble.HistGradientBoostingClassifier
   params:
     class_weight: balanced
-    max_iter: 1000
+    max_iter: 300
+    learning_rate: 0.08
+    max_leaf_nodes: 31
+    min_samples_leaf: 20
+    l2_regularization: 0.1
+    early_stopping: true
     random_state: 42
 
 features:
@@ -28,6 +40,14 @@ features:
     - is_weekend
     - age
     - start_station_freq
+    - hour_sin
+    - hour_cos
+    - month_sin
+    - month_cos
+    - dayofweek_sin
+    - dayofweek_cos
+    - is_rush_hour
+    - is_night
   categorical:
     - usertype
     - gender

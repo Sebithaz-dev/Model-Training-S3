@@ -20,7 +20,11 @@ DEFAULT_CONFIG_PATH = Path(__file__).resolve().parent.parent / "config" / "model
 class ModelConfig:
     trip_long_threshold_seconds: int
     decision_threshold: float
+    tune_threshold: bool
+    threshold_metric: str
+    split_strategy: str
     test_size: float
+    validation_size: float
     random_state: int
     stratify: bool
     model_class: str
@@ -55,10 +59,14 @@ def load_config(path: str | os.PathLike | None = None) -> ModelConfig:
     features = data["features"]
     outliers = data["outliers"]
 
-    return ModelConfig(
+    cfg = ModelConfig(
         trip_long_threshold_seconds=int(target["trip_long_threshold_seconds"]),
         decision_threshold=float(target["decision_threshold"]),
+        tune_threshold=bool(target.get("tune_threshold", True)),
+        threshold_metric=str(target.get("threshold_metric", "f1")),
+        split_strategy=str(split.get("strategy", "temporal")),
         test_size=float(split["test_size"]),
+        validation_size=float(split.get("validation_size", 0.1)),
         random_state=int(split["random_state"]),
         stratify=bool(split["stratify"]),
         model_class=str(model["class"]),
@@ -68,3 +76,22 @@ def load_config(path: str | os.PathLike | None = None) -> ModelConfig:
         age_min=int(outliers["age_min"]),
         age_max=int(outliers["age_max"]),
     )
+    _validate_config(cfg)
+    return cfg
+
+
+def _validate_config(cfg: ModelConfig) -> None:
+    if not 0 <= cfg.decision_threshold <= 1:
+        raise ValueError("target.decision_threshold debe estar entre 0 y 1")
+    if cfg.threshold_metric not in {"f1", "recall", "precision"}:
+        raise ValueError(
+            "target.threshold_metric debe ser f1, recall o precision"
+        )
+    if cfg.split_strategy not in {"temporal", "random"}:
+        raise ValueError("split.strategy debe ser temporal o random")
+    if not 0 < cfg.test_size < 1:
+        raise ValueError("split.test_size debe estar entre 0 y 1")
+    if not 0 < cfg.validation_size < 1:
+        raise ValueError("split.validation_size debe estar entre 0 y 1")
+    if cfg.test_size + cfg.validation_size >= 1:
+        raise ValueError("test_size + validation_size debe ser menor que 1")

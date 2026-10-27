@@ -4,7 +4,7 @@
 [![Security & Quality](https://github.com/Sebithaz-dev/Model-Training-S3/actions/workflows/security.yml/badge.svg)](https://github.com/Sebithaz-dev/Model-Training-S3/actions/workflows/security.yml)
 [![Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=Sebithaz-dev_Model-Training-S3&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=Sebithaz-dev_Model-Training-S3)
 
-Pipeline de entrenamiento automatizado para clasificar la duración de viajes de Citi Bike NYC en **corto** (< 15 min) o **largo** (≥ 15 min), utilizando datos curados desde AWS Glue y subiendo artefactos a S3.
+Pipeline de entrenamiento automatizado para clasificar la duración de viajes de Citi Bike NYC en **corto** (≤ 15 min) o **largo** (> 15 min), utilizando datos curados desde AWS Glue y subiendo artefactos a S3.
 
 ---
 
@@ -131,7 +131,7 @@ Antes del feature engineering se valida el schema del Parquet contra el contrato
 python -m ml.predict
 ```
 
-Ejecuta ejemplos de prueba con un Passenger (`Customer`, 5pm → largo) vs un Suscriptor (`Subscriber`, 8am → corto).
+Ejecuta ejemplos de prueba con un Passenger (`Customer`, 5pm → largo) vs un Suscriptor (`Subscriber`, 6am → corto).
 
 ### Health check del pipeline
 
@@ -178,20 +178,36 @@ Parquet con columnas:
 
 ### Feature Engineering
 
-- `start_station_freq` — frequency encoding con `log1p`
-- `usertype` / `gender` — `LabelEncoder` (fiteado sobre training set)
-- Escalado con `StandardScaler`
+- `start_station_freq` — frequency encoding con `log1p` (fiteado solo con train)
+- `usertype` / `gender` — `LabelEncoder` (fiteado solo con train; categorías nuevas → `-1`)
+- Features cíclicas: `hour_sin/cos`, `month_sin/cos`, `dayofweek_sin/cos`
+- Flags horarios: `is_rush_hour` (7-9 y 17-19), `is_night` (22-5)
+- Escalado con `StandardScaler` (fiteado solo con train)
 
 ### Target
 
 - **1** (`largo`) si `tripduration / 60 > 15` (> 900 segundos)
 - **0** (`corto`) en caso contrario
-- Umbral de decisión del modelo: **0.65**
+- El umbral de decisión se optimiza en validación maximizando **F1** y se persiste en `transformers.pkl` / `metricas.json` (el valor configurado en YAML queda como respaldo)
+
+### Split
+
+- **Temporal** por defecto: ordena por `starttime` y usa 70% train, 10% validación y 20% test.
+- El modo `random` sigue disponible en `config/model.yaml` para comparar contra el baseline.
 
 ### Modelo
 
 ```python
-LogisticRegression(random_state=42, max_iter=1000, class_weight="balanced")
+HistGradientBoostingClassifier(
+    class_weight="balanced",
+    max_iter=300,
+    learning_rate=0.08,
+    max_leaf_nodes=31,
+    min_samples_leaf=20,
+    l2_regularization=0.1,
+    early_stopping=True,
+    random_state=42,
+)
 ```
 
 ### Salidas (subidas a S3)
@@ -199,26 +215,43 @@ LogisticRegression(random_state=42, max_iter=1000, class_weight="balanced")
 | Archivo | Contenido |
 |---|---|
 | `modelo.pkl` | Modelo entrenado (joblib) |
-| `transformers.pkl` | LabelEncoders + Scaler + station_freq + feature_cols |
+| `transformers.pkl` | LabelEncoders + Scaler + station_freq + feature_cols + umbral |
 | `metricas.json` | Métricas de evaluación + umbral + features usadas |
 
 ---
 
 ## Métricas reportadas
 
-Las métricas se calculan sobre el test set (80/20 split estratificado) y se guardan en `metricas.json`:
+Las métricas se calculan sobre el test set temporal (70/10/20) y se guardan en `metricas.json`:
 
 | Métrica | Descripción |
 |---|---|
 | `accuracy` | Exactitud global |
 | `recall` | Recall clase positiva (`largo`) |
 | `precision` | Precisión clase positiva |
-| `f1` | F1-score clase positiva |
+| `f1_score` | F1-score clase positiva |
 | `roc_auc` | Área bajo la curva ROC |
+| `pr_auc` | Área bajo la curva Precision-Recall |
 | `gini` | Coeficiente Gini (`2 * roc_auc - 1`) |
-| `confusion_matrix` | Matriz [[TN, FP], [FN, TP]] |
-| `train_size` / `test_size` | Tamaño de cada split |
-| `proportion` | Proporción de viajes largos en test |
+| `matriz_confusion` | Matriz [[TN, FP], [FN, TP]] |
+| `train_size` / `validation_size` / `test_size` | Tamaño de cada split |
+| `proporcion_largos` | Proporción de viajes largos en test |
+| `umbral_decision` | Umbral F1 elegido en validación |
+
+### Últimas métricas (test temporal)
+
+| Métrica | Valor |
+|---|---|
+| ROC AUC | 0.6505 |
+| PR AUC | 0.4455 |
+| Gini | 0.3009 |
+| Accuracy | 0.5500 |
+| Recall (largo) | 0.7035 |
+| Precision (largo) | 0.3473 |
+| F1 Score (largo) | 0.4650 |
+| Umbral decisión | 0.46 |
+| Train / Val / Test | 331,401 / 47,343 / 94,686 |
+| Matriz de confusión | [[33,557, 34,806], [7,804, 18,519]] |
 
 ---
 
@@ -404,11 +437,14 @@ Reglas:
 │   ├── __init__.py
 │   ├── config.py           # Carga de configuración YAML
 │   ├── data_validation.py  # Validación de schema y calidad de datos
+│   ├── features.py        # Features temporales compartidas train/predict
 │   ├── health.py           # Health check (config, artefactos, S3)
 │   ├── train.py            # Entrenamiento del modelo
 │   ├── predict.py          # Predicción local (CLI demo)
 │   └── s3_utils.py         # Subida/descarga desde S3
 ├── tests/                  # Tests unitarios (pytest)
+│   ├── test_features.py    # Features temporales
+│   ├── test_train.py       # Split, umbral y pipeline
 │   └── test_health.py      # Tests del health check
 ├── pyproject.toml          # Config de ruff y pytest
 ├── requirements.txt        # Dependencias runtime

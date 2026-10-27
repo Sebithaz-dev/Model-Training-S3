@@ -10,7 +10,7 @@ from ml import health
 def test_check_config_ok():
     result = health.check_config()
     assert result["status"] == "ok"
-    assert result["model_class"] == "sklearn.linear_model.LogisticRegression"
+    assert result["model_class"] == "sklearn.ensemble.HistGradientBoostingClassifier"
 
 
 def test_check_artifacts_missing(tmp_path):
