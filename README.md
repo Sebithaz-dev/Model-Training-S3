@@ -229,6 +229,8 @@ Las métricas se calculan sobre el test set (80/20 split estratificado) y se gua
 - **Triggers:** `pull_request` a `main` (gate de merge, obligatorio verde) y `push` a `main` (verificación post-merge del trunk).
 - **Pasos:** checkout → setup Python 3.11 (cache de pip) → instalar `requirements-dev.txt` → `ruff check` → `pytest` con cobertura → health check de configuración.
 - **Propósito:** garantizar que todo lo que llega a `main` pasa lint, tests y el health check básico. Bloquea el merge si falla.
+- **Política de calidad:** cobertura mínima del 60 % sobre `ml/` (`--cov-fail-under=60`); bajo ese umbral el job falla.
+- **Job `docker`** (`needs: lint-test`): construye la imagen con tag = SHA del commit, ejecuta un smoke test (`ml.health`) dentro del contenedor y, en push a `main`, la publica en GHCR como `ghcr.io/sebithaz-dev/model-training-s3:<sha>` y `:latest`.
 
 > **Nota sobre IE3/IE4:** el enunciado pide disparar la CI en "push a `develop` y pull request a `main`". Como este repositorio usa **TBD puro** (sin rama `develop` — ver [justificación](#estrategia-de-branching-trunk-based-development-tbd)), el trigger `push a develop` se sustituye por `push a main`, que cumple el mismo rol en TBD: verificar el trunk tras cada integración.
 
@@ -246,7 +248,22 @@ Las métricas se calculan sobre el test set (80/20 split estratificado) y se gua
 - **SonarCloud:** ejecuta `pytest --cov=ml --cov-report=xml` y publica cobertura, bugs, vulnerabilidades y code smells.
 - **Secrets requeridos:** `SNYK_TOKEN`, `SONAR_TOKEN`.
 - **Variables:** `SONAR_ORGANIZATION` (default `sebithaz-dev`), `SONAR_PROJECT_KEY` (default `Sebithaz-dev_Model-Training-S3`).
-- **Bloqueo:** Snyk es informativo al inicio (`continue-on-error`); SonarCloud publica el análisis sin esperar el quality gate. Cuando el equipo lo decida, se puede activar `sonar.qualitygate.wait=true`.
+- **Bloqueo:** el escaneo de dependencias de runtime (`requirements.txt`) es **bloqueante**: una vulnerabilidad `high` o `critical` falla el workflow. Snyk sobre dependencias de desarrollo y Snyk Code quedan como **alertas** en GitHub Security. SonarCloud espera el resultado del **Quality Gate** (`sonar.qualitygate.wait=true`) y falla si no se cumple. Ambos checks se exigen en la protección de `main`.
+- **Dependabot:** `.github/dependabot.yml` abre PRs semanales para dependencias `pip`, la imagen base de Docker y las GitHub Actions.
+
+### Contenedor del job de entrenamiento
+
+El `Dockerfile` empaqueta el job (`python:3.11-slim`, usuario sin privilegios `10001`, sin tests ni datos en la imagen gracias a `.dockerignore`). Su punto de entrada `scripts/run_pipeline.py` descarga el dataset curado, entrena y ejecuta el health check:
+
+- **Con credenciales AWS:** descarga con boto3, sube los artefactos a S3 y valida en modo `--strict`.
+- **Sin credenciales:** descarga por la URL pública del bucket y deja los artefactos solo en el contenedor (modo demo).
+
+```bash
+docker build -t model-training-s3 .
+docker run --rm --env-file .env model-training-s3
+```
+
+La orquestación junto al dashboard está en `docker-compose.yml` y `k8s/` del repo [Flask-Dashboard-S3](https://github.com/Sebithaz-dev/Flask-Dashboard-S3).
 
 ---
 
