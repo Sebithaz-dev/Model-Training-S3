@@ -45,7 +45,40 @@ jobs:
         run: ruff check ml tests scripts
 
       - name: Tests (pytest + cobertura)
-        run: pytest tests/ -v --cov=ml --cov-report=xml --cov-report=term
+        run: pytest tests/ -v --cov=ml --cov-report=xml --cov-report=term --cov-fail-under=60
 
       - name: Health check (config)
         run: python -m ml.health --json --skip-s3 --skip-artifacts
+
+  docker:
+    name: Imagen Docker (build, smoke test y publicacion)
+    runs-on: ubuntu-latest
+    needs: lint-test
+    permissions:
+      contents: read
+      packages: write
+    env:
+      IMAGE: ghcr.io/sebithaz-dev/model-training-s3
+
+    steps:
+      - name: Descargar codigo
+        uses: actions/checkout@v4
+
+      - name: Construir imagen (tag = SHA del commit)
+        run: |
+          docker build \
+            --build-arg GIT_SHA=${{ github.sha }} \
+            -t $IMAGE:${{ github.sha }} .
+
+      - name: Smoke test del contenedor (health check de configuracion)
+        run: |
+          docker run --rm $IMAGE:${{ github.sha }} \
+            python -m ml.health --json --skip-s3 --skip-artifacts
+
+      - name: Publicar en GHCR (solo push a main)
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          docker tag $IMAGE:${{ github.sha }} $IMAGE:latest
+          docker push $IMAGE:${{ github.sha }}
+          docker push $IMAGE:latest

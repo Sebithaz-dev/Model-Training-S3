@@ -33,17 +33,14 @@ jobs:
         with:
           python-version: '3.11'
 
+      # Snyk necesita las dependencias instaladas para resolver el arbol completo
+      - name: Instalar dependencias
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
       - name: Instalar Snyk CLI
         uses: snyk/actions/setup@v1
-
-      - name: Snyk Open Source (runtime)
-        continue-on-error: true
-        run: >
-          snyk test --file=requirements.txt
-          --severity-threshold=high
-          --sarif-file-output=snyk-sca.sarif
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
       - name: Snyk Open Source (dev)
         continue-on-error: true
@@ -57,6 +54,16 @@ jobs:
       - name: Snyk Code (SAST)
         continue-on-error: true
         run: snyk code test --sarif-file-output=snyk-code.sarif
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+      # Bloqueante: una vulnerabilidad high/critical en dependencias de
+      # runtime falla el workflow y, con la proteccion de main, bloquea el merge.
+      - name: Snyk Open Source (runtime)
+        run: >
+          snyk test --file=requirements.txt
+          --severity-threshold=high
+          --sarif-file-output=snyk-sca.sarif
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
