@@ -6,6 +6,8 @@ import joblib
 import numpy as np
 import pandas as pd
 
+from ml.features import add_time_features
+
 warnings.filterwarnings("ignore")
 RUTA_ARTEFACTOS = os.path.join(os.path.dirname(__file__), "artefactos")
 
@@ -38,6 +40,7 @@ class Predictor:
         df["start_station_freq"] = np.log1p(
             df["start_station_id"].map(self.station_freq).fillna(0)
         )
+        df = add_time_features(df)
         for col in ["usertype", "gender"]:
             le = self.label_encoders[col]
             df[col] = (
@@ -53,6 +56,7 @@ class Predictor:
             "probabilidad_largo": round(float(prob), 4),
             "prediccion": pred,
             "etiqueta": "largo" if pred else "corto",
+            "umbral_decision": round(float(self.decision_threshold), 4),
         }
 
 
@@ -71,6 +75,7 @@ SALIDA_SCHEMA = {
     "probabilidad_largo": "float - Probabilidad de viaje largo (0.0 - 1.0)",
     "prediccion": "int - 1 si viaje largo, 0 si corto",
     "etiqueta": "str - 'largo' | 'corto'",
+    "umbral_decision": "float - Umbral usado para clasificar",
 }
 
 
@@ -91,7 +96,7 @@ def main():
         "start_station_id": 3160,
         "usertype": "Subscriber",
         "gender": "Male",
-        "hour": 8,
+        "hour": 6,
         "month": 7,
         "dayofweek": 3,
         "is_weekend": 0,
@@ -100,7 +105,7 @@ def main():
 
     print("\nEjemplo 1 (Customer, 5pm):")
     print(json.dumps(predictor.predecir(ejemplo_1), indent=2))
-    print("\nEjemplo 2 (Subscriber, 8am):")
+    print("\nEjemplo 2 (Subscriber, 6am):")
     print(json.dumps(predictor.predecir(ejemplo_2), indent=2))
 
 
