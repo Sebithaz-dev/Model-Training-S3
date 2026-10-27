@@ -44,5 +44,8 @@ jobs:
       - name: Lint (ruff)
         run: ruff check ml tests
 
-      - name: Tests (pytest)
-        run: pytest tests/ -v
+      - name: Tests (pytest + cobertura)
+        run: pytest tests/ -v --cov=ml --cov-report=xml --cov-report=term
+
+      - name: Health check (config)
+        run: python -m ml.health --json --skip-s3 --skip-artifacts

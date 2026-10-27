@@ -42,3 +42,10 @@ jobs:
         env:
           S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
           S3_MODEL_PREFIX: ${{ vars.S3_MODEL_PREFIX || 'models/' }}
+
+      - name: Health check (artefactos + S3)
+        run: python -m ml.health --json --strict
+        env:
+          AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
+          S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
+          S3_MODEL_PREFIX: ${{ vars.S3_MODEL_PREFIX || 'models/' }}
