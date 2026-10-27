@@ -50,7 +50,8 @@ def check_config() -> dict:
     )
 
 
-def check_artifacts(artifact_dir: Path = ARTIFACT_DIR) -> dict:
+def check_artifacts(artifact_dir: Path | None = None) -> dict:
+    artifact_dir = artifact_dir or ARTIFACT_DIR
     missing = [name for name in ARTIFACT_FILES if not (artifact_dir / name).exists()]
     if missing:
         return _result(
@@ -98,8 +99,9 @@ def check_s3() -> dict:
             region_name=region,
             config=Config(connect_timeout=5, read_timeout=5, retries={"max_attempts": 0}),
         )
-        s3.head_bucket(Bucket=bucket)
-        s3.head_object(Bucket=bucket, Key=key)
+        account_id = boto3.client("sts", region_name=region).get_caller_identity()["Account"]
+        s3.head_bucket(Bucket=bucket, ExpectedBucketOwner=account_id)
+        s3.head_object(Bucket=bucket, Key=key, ExpectedBucketOwner=account_id)
     except Exception as exc:
         return _result(
             "error",
