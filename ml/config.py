@@ -80,6 +80,11 @@ def load_config(path: str | os.PathLike | None = None) -> ModelConfig:
     return cfg
 
 
+def _ensure_fraction(value: float, name: str) -> None:
+    if value <= 0 or value >= 1:
+        raise ValueError(f"{name} debe estar entre 0 y 1")
+
+
 def _validate_config(cfg: ModelConfig) -> None:
     if cfg.decision_threshold < 0 or cfg.decision_threshold > 1:
         raise ValueError("target.decision_threshold debe estar entre 0 y 1")
@@ -89,9 +94,7 @@ def _validate_config(cfg: ModelConfig) -> None:
         )
     if cfg.split_strategy not in {"temporal", "random"}:
         raise ValueError("split.strategy debe ser temporal o random")
-    if cfg.test_size <= 0 or cfg.test_size >= 1:
-        raise ValueError("split.test_size debe estar entre 0 y 1")
-    if cfg.validation_size <= 0 or cfg.validation_size >= 1:
-        raise ValueError("split.validation_size debe estar entre 0 y 1")
+    _ensure_fraction(cfg.test_size, "split.test_size")
+    _ensure_fraction(cfg.validation_size, "split.validation_size")
     if cfg.test_size + cfg.validation_size >= 1:
         raise ValueError("test_size + validation_size debe ser menor que 1")
