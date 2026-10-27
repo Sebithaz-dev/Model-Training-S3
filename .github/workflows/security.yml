@@ -1,0 +1,104 @@
+name: Security & Quality
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Lunes 3am UTC
+    - cron: '0 3 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+  pull-requests: read
+
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  snyk:
+    name: Snyk (SCA + Code)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar codigo
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Instalar Snyk CLI
+        uses: snyk/actions/setup@v1
+
+      - name: Snyk Open Source (runtime)
+        continue-on-error: true
+        run: >
+          snyk test --file=requirements.txt
+          --severity-threshold=high
+          --sarif-file-output=snyk-sca.sarif
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+      - name: Snyk Open Source (dev)
+        continue-on-error: true
+        run: >
+          snyk test --file=requirements-dev.txt
+          --severity-threshold=high
+          --sarif-file-output=snyk-dev.sarif
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+      - name: Snyk Code (SAST)
+        continue-on-error: true
+        run: snyk code test --sarif-file-output=snyk-code.sarif
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+      - name: Subir SARIF a GitHub Security
+        if: always()
+        continue-on-error: true
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: .
+          category: snyk
+
+  sonar:
+    name: SonarCloud
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar codigo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+
+      - name: Instalar dependencias
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      - name: Tests + cobertura
+        run: pytest --cov=ml --cov-report=xml --cov-report=term
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarqube-scan-action@v8
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: https://sonarcloud.io
+        with:
+          args: >
+            -Dsonar.organization=${{ vars.SONAR_ORGANIZATION || 'sebithaz-dev' }}
+            -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY || 'Sebithaz-dev_Model-Training-S3' }}

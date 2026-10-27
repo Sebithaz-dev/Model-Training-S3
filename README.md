@@ -1,5 +1,9 @@
 # Model Training — Citi Bike S3
 
+[![CI](https://github.com/Sebithaz-dev/Model-Training-S3/actions/workflows/ci.yml/badge.svg)](https://github.com/Sebithaz-dev/Model-Training-S3/actions/workflows/ci.yml)
+[![Security & Quality](https://github.com/Sebithaz-dev/Model-Training-S3/actions/workflows/security.yml/badge.svg)](https://github.com/Sebithaz-dev/Model-Training-S3/actions/workflows/security.yml)
+[![Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=Sebithaz-dev_Model-Training-S3&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=Sebithaz-dev_Model-Training-S3)
+
 Pipeline de entrenamiento automatizado para clasificar la duración de viajes de Citi Bike NYC en **corto** (< 15 min) o **largo** (≥ 15 min), utilizando datos curados desde AWS Glue y subiendo artefactos a S3.
 
 ---
@@ -79,6 +83,26 @@ python -m ml.predict
 
 Ejecuta ejemplos de prueba con un Passenger (`Customer`, 5pm → largo) vs un Suscriptor (`Subscriber`, 8am → corto).
 
+### Health check del pipeline
+
+```bash
+python -m ml.health                  # config + artefactos + S3 (si esta configurado)
+python -m ml.health --json           # salida JSON para CI
+python -m ml.health --skip-s3        # sin acceso a red
+python -m ml.health --strict         # falla si hay estado degradado
+```
+
+Evalúa tres componentes: `config`, `artifacts` y `s3`. Estados posibles:
+
+| Estado | Significado |
+|---|---|
+| `ok` | Componente sano |
+| `degraded` | Artefactos locales ausentes (esperado en un checkout limpio) |
+| `skipped` | Validación omitida o S3 no configurado |
+| `error` | Configuración inválida, artefactos corruptos o S3 inaccesible |
+
+El comando termina con código `0` salvo que exista un `error`, o que haya `degraded` y se use `--strict`. En CI, `ci.yml` valida solo la configuración (`--skip-s3 --skip-artifacts`) y `train.yml` valida artefactos + S3 después de entrenar.
+
 ---
 
 ## Pipeline de entrenamiento (`ml/train.py`)
@@ -153,17 +177,50 @@ Las métricas se calculan sobre el test set (80/20 split estratificado) y se gua
 ### `ci.yml` — lint y tests (calidad continua)
 
 - **Triggers:** `pull_request` a `main` (gate de merge, obligatorio verde) y `push` a `main` (verificación post-merge del trunk).
-- **Pasos:** checkout → setup Python 3.11 (cache de pip) → instalar `requirements-dev.txt` → `ruff check` → `pytest`.
-- **Propósito:** garantizar que todo lo que llega a `main` pasa lint y tests. Bloquea el merge si falla.
+- **Pasos:** checkout → setup Python 3.11 (cache de pip) → instalar `requirements-dev.txt` → `ruff check` → `pytest` con cobertura → health check de configuración.
+- **Propósito:** garantizar que todo lo que llega a `main` pasa lint, tests y el health check básico. Bloquea el merge si falla.
 
 > **Nota sobre IE3/IE4:** el enunciado pide disparar la CI en "push a `develop` y pull request a `main`". Como este repositorio usa **TBD puro** (sin rama `develop` — ver [justificación](#estrategia-de-branching-trunk-based-development-tbd)), el trigger `push a develop` se sustituye por `push a main`, que cumple el mismo rol en TBD: verificar el trunk tras cada integración.
 
 ### `train.yml` — entrenamiento + subida a S3
 
 - **Trigger:** Semanal (domingo 2am UTC) + `workflow_dispatch` manual
-- **Pasos:** checkout → setup python → instalar deps → configurar AWS → descargar datos curados desde S3 → entrenar → subir artefactos
+- **Pasos:** checkout → setup python → instalar deps → configurar AWS → descargar datos curados desde S3 → entrenar → subir artefactos → health check de artefactos + S3
 - **Secrets requeridos:** `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_SESSION_TOKEN`, `S3_BUCKET_NAME`
 - **Variables:** `AWS_REGION` (default `us-east-1`), `S3_DATA_KEY` (default `curated/citibike_trips/citibike_curated.snappy.parquet`), `S3_MODEL_PREFIX` (default `models/`)
+
+### `security.yml` — Snyk + SonarCloud
+
+- **Triggers:** `pull_request` y `push` a `main`, semanal (lunes 3am UTC) y `workflow_dispatch`.
+- **Snyk:** escanea dependencias (`requirements.txt` y `requirements-dev.txt`) con Snyk Open Source y código con Snyk Code. Los resultados se suben como SARIF a la pestaña **Security** de GitHub.
+- **SonarCloud:** ejecuta `pytest --cov=ml --cov-report=xml` y publica cobertura, bugs, vulnerabilidades y code smells.
+- **Secrets requeridos:** `SNYK_TOKEN`, `SONAR_TOKEN`.
+- **Variables:** `SONAR_ORGANIZATION` (default `sebithaz-dev`), `SONAR_PROJECT_KEY` (default `Sebithaz-dev_Model-Training-S3`).
+- **Bloqueo:** Snyk es informativo al inicio (`continue-on-error`); SonarCloud publica el análisis sin esperar el quality gate. Cuando el equipo lo decida, se puede activar `sonar.qualitygate.wait=true`.
+
+---
+
+## Seguridad y calidad
+
+### Snyk
+
+1. Crear una cuenta en [Snyk](https://app.snyk.io) y habilitar **Snyk Code**.
+2. Generar un API token en *Account Settings*.
+3. Cargarlo como secret `SNYK_TOKEN` en el repositorio.
+
+El workflow ejecuta:
+
+- `snyk test` sobre las dependencias de runtime y desarrollo.
+- `snyk code test` sobre el código Python.
+- Subida de SARIF a GitHub Security.
+
+### SonarCloud
+
+1. Importar el repositorio en [SonarCloud](https://sonarcloud.io) bajo la organización `sebithaz-dev`.
+2. **Desactivar Automatic Analysis** en *Administration → Analysis Method* para evitar conflictos con el análisis de CI.
+3. Generar un token en *My Account → Security* y cargarlo como secret `SONAR_TOKEN`.
+
+La configuración vive en `sonar-project.properties` y la cobertura se genera con `pytest-cov`.
 
 ---
 
@@ -278,7 +335,7 @@ Reglas:
 
 ## Repositorios relacionados
 
-- [Flask-Dashboard-S3](https://github.com/anomalyco/Flask-Dashboard-S3) — Dashboard Flask + Chart.js que consume los artefactos de S3
+- [Flask-Dashboard-S3](https://github.com/Sebithaz-dev/Flask-Dashboard-S3) — Dashboard Flask + Chart.js que consume los artefactos de S3
 
 ---
 
@@ -288,7 +345,8 @@ Reglas:
 .
 ├── .env.example            # Variables de entorno (template)
 ├── .github/workflows/      # CI/CD
-│   ├── ci.yml              # Lint + tests (push a develop, PR a main)
+│   ├── ci.yml              # Lint + tests + health (PR/push a main)
+│   ├── security.yml        # Snyk + SonarCloud (PR/push/semanal)
 │   └── train.yml           # Entrenamiento semanal + subida a S3
 ├── config/
 │   └── model.yaml          # Hiperparámetros y umbrales del modelo
@@ -296,11 +354,14 @@ Reglas:
 │   ├── __init__.py
 │   ├── config.py           # Carga de configuración YAML
 │   ├── data_validation.py  # Validación de schema y calidad de datos
+│   ├── health.py           # Health check (config, artefactos, S3)
 │   ├── train.py            # Entrenamiento del modelo
 │   ├── predict.py          # Predicción local (CLI demo)
 │   └── s3_utils.py         # Subida/descarga desde S3
 ├── tests/                  # Tests unitarios (pytest)
+│   └── test_health.py      # Tests del health check
 ├── pyproject.toml          # Config de ruff y pytest
 ├── requirements.txt        # Dependencias runtime
-└── requirements-dev.txt    # Dependencias desarrollo (pytest, ruff)
+├── requirements-dev.txt    # Dependencias desarrollo (pytest, ruff, coverage)
+└── sonar-project.properties # Config de SonarCloud
 ```

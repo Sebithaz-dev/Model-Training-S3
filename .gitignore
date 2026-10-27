@@ -4,3 +4,7 @@ __pycache__/
 artefactos/
 data/
 .DS_Store
+.coverage
+coverage.xml
+htmlcov/
+*.sarif
