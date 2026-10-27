@@ -53,6 +53,56 @@ cp .env.example .env
 | `S3_DATA_KEY` | Ruta al Parquet curado en S3 |
 | `S3_MODEL_PREFIX` | Prefix donde subir artefactos (default: `models/`) |
 
+### Recrear S3 con un nuevo Learner Lab
+
+Si el laboratorio anterior expiró y el bucket ya no existe, estos scripts
+reconstruyen todo el demo a partir del Parquet raw local.
+
+```bash
+# 1. Credenciales temporales del Learner Lab
+export AWS_ACCESS_KEY_ID=...
+export AWS_SECRET_ACCESS_KEY=...
+export AWS_SESSION_TOKEN=...
+export AWS_REGION=us-east-1
+
+# 2. Generar dataset curado + sample liviano para el dashboard
+python -m scripts.build_curated_dataset \
+  --input /ruta/a/citibike_trips.parquet \
+  --output-dir data/curated
+
+# 3. Entrenar y subir artefactos al bucket
+S3_BUCKET_NAME=citibike-datalake-seb-<account-id> \
+S3_MODEL_PREFIX=models/ \
+python -m ml.train --input data/curated/citibike_curated.snappy.parquet
+
+# 4. Crear el bucket público y subir datos + artefactos
+python -m scripts.seed_s3 \
+  --bucket citibike-datalake-seb-<account-id> \
+  --region us-east-1 \
+  --landing /ruta/a/citibike_trips.parquet \
+  --public-read
+```
+
+Layout resultante en S3:
+
+```
+landing/citibike_trips.parquet
+curated/citibike_trips/citibike_curated.snappy.parquet
+curated/citibike_trips/citibike_dashboard_sample.parquet
+models/modelo.pkl
+models/transformers.pkl
+models/metricas.json
+```
+
+- `train.yml` usa `S3_DATA_KEY` (dataset curado completo) y sube artefactos a
+  `S3_MODEL_PREFIX`.
+- El dashboard usa el sample `citibike_dashboard_sample.parquet` para responder
+  rápido y sin descargar las 473k filas completas.
+- El bucket es público de solo lectura; el dashboard no necesita credenciales.
+- Las credenciales de Learner Lab expiran. El dashboard sigue funcionando por el
+  bucket público, pero hay que renovar los secrets del repo para volver a
+  ejecutar `train.yml`.
+
 ---
 
 ## Uso local
