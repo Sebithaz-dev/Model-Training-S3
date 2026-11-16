@@ -1,4 +1,4 @@
-FROM python:3.11-slim
+FROM python:3.15-slim
 
 ARG GIT_SHA=local
 LABEL org.opencontainers.image.source="https://github.com/Sebithaz-dev/Model-Training-S3" \
