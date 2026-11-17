@@ -118,3 +118,64 @@ def test_entrenar_genera_artefactos(tmp_path, monkeypatch):
     assert 0 <= metricas["umbral_decision"] <= 1
     assert transformers["decision_threshold"] == metricas["umbral_decision"]
     assert transformers["feature_cols"] == metricas["features"]
+
+
+def _gate_yaml(tmp_path, roc_min: float) -> str:
+    gate = tmp_path / "gate.yaml"
+    gate.write_text(
+        "enabled: true\n"
+        "min_test_size: 0\n"
+        "thresholds:\n"
+        f"  roc_auc: {roc_min}\n",
+        encoding="utf-8",
+    )
+    return str(gate)
+
+
+def test_entrenar_con_gate_aprobado_sube_artefactos(tmp_path, monkeypatch):
+    dataset_path = tmp_path / "datos.parquet"
+    _dataset().to_parquet(dataset_path, index=False)
+    monkeypatch.setattr(train, "RUTA_ARTEFACTOS", str(tmp_path / "artefactos"))
+    monkeypatch.setenv("S3_BUCKET_NAME", "bucket-demo")
+    monkeypatch.delenv("CLOUDWATCH_NAMESPACE", raising=False)
+    subidas = []
+    monkeypatch.setattr(
+        "ml.s3_utils.upload_artifacts",
+        lambda local, bucket, prefix: subidas.append((local, bucket, prefix)),
+    )
+
+    train.entrenar(
+        dataset_path,
+        _config(),
+        quality_gate=True,
+        quality_gate_path=_gate_yaml(tmp_path, roc_min=0.0),
+    )
+
+    assert len(subidas) == 1
+
+
+def test_entrenar_con_gate_fallido_no_sube_artefactos(tmp_path, monkeypatch):
+    from ml.quality_gate import QualityGateError
+
+    dataset_path = tmp_path / "datos.parquet"
+    _dataset().to_parquet(dataset_path, index=False)
+    monkeypatch.setattr(train, "RUTA_ARTEFACTOS", str(tmp_path / "artefactos"))
+    monkeypatch.setenv("S3_BUCKET_NAME", "bucket-demo")
+    monkeypatch.delenv("CLOUDWATCH_NAMESPACE", raising=False)
+    subidas = []
+    monkeypatch.setattr(
+        "ml.s3_utils.upload_artifacts",
+        lambda local, bucket, prefix: subidas.append((local, bucket, prefix)),
+    )
+
+    with pytest.raises(QualityGateError):
+        train.entrenar(
+            dataset_path,
+            _config(),
+            quality_gate=True,
+            quality_gate_path=_gate_yaml(tmp_path, roc_min=1.1),
+        )
+
+    assert subidas == []
+    # El artefacto local si queda, para poder inspeccionar el fallo.
+    assert (tmp_path / "artefactos" / "metricas.json").exists()

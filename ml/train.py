@@ -115,7 +115,19 @@ def _elegir_umbral(
     return best_threshold
 
 
-def entrenar(ruta_parquet, config: ModelConfig | None = None):
+def entrenar(
+    ruta_parquet,
+    config: ModelConfig | None = None,
+    quality_gate: bool = False,
+    quality_gate_path: str | None = None,
+):
+    """Entrena el modelo y publica los artefactos.
+
+    ``quality_gate=True`` evalua ``config/quality_gate.yaml`` despues de
+    escribir ``metricas.json`` y antes de subir nada a S3: si el modelo
+    regresiona, lanza ``QualityGateError`` y los artefactos quedan solo
+    locales. El CLI del modulo activa el gate por defecto.
+    """
     cfg = config or load_config()
     os.makedirs(RUTA_ARTEFACTOS, exist_ok=True)
 
@@ -270,6 +282,25 @@ def entrenar(ruta_parquet, config: ModelConfig | None = None):
     with open(os.path.join(RUTA_ARTEFACTOS, "metricas.json"), "w") as f:
         json.dump(metricas, f, indent=2)
 
+    from ml.metrics_export import publish_model_metrics
+
+    gate_passed = None
+    if quality_gate:
+        from ml.quality_gate import QualityGateError, enforce
+
+        print("\n[gate] Evaluando quality gate antes de publicar artefactos")
+        try:
+            resultado = enforce(metricas, quality_gate_path)
+        except QualityGateError as exc:
+            publish_model_metrics(metricas, gate_passed=False)
+            print(f"[gate] FAIL: {exc}")
+            print("[gate] Los artefactos NO se suben a S3.")
+            raise
+        gate_passed = resultado.passed
+        print(f"[gate] PASS ({len(resultado.checks)} checks)")
+
+    publish_model_metrics(metricas, gate_passed=gate_passed)
+
     print("\n[OK] Entrenamiento completado localmente.")
 
     bucket = os.getenv("S3_BUCKET_NAME")
@@ -290,5 +321,28 @@ if __name__ == "__main__":
         default=None,
         help="Ruta al archivo YAML de configuracion (default: config/model.yaml o $MODEL_CONFIG)",
     )
+    parser.add_argument(
+        "--quality-gate",
+        dest="quality_gate",
+        action="store_true",
+        default=True,
+        help="Evalua el quality gate antes de subir artefactos (default: activo)",
+    )
+    parser.add_argument(
+        "--no-quality-gate",
+        dest="quality_gate",
+        action="store_false",
+        help="Omite el quality gate (solo para experimentos locales)",
+    )
+    parser.add_argument(
+        "--gate-config",
+        default=None,
+        help="Ruta al YAML del quality gate (default: config/quality_gate.yaml)",
+    )
     args = parser.parse_args()
-    entrenar(args.input, load_config(args.config) if args.config else None)
+    entrenar(
+        args.input,
+        load_config(args.config) if args.config else None,
+        quality_gate=args.quality_gate,
+        quality_gate_path=args.gate_config,
+    )

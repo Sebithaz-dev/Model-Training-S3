@@ -10,6 +10,12 @@ updates:
     labels: [dependencies, python]
     commit-message:
       prefix: "chore(deps)"
+    # Los saltos mayores (pandas 3, pytest 9, scikit-learn 2, pytest-cov 7)
+    # rompen la matriz de Python 3.11 y el pin del modelo. Se revisan a mano
+    # en una rama dedicada, no via PR automatico.
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
 
   # Imagen base del Dockerfile
   - package-ecosystem: docker
@@ -20,6 +26,13 @@ updates:
     labels: [dependencies, docker]
     commit-message:
       prefix: "chore(docker)"
+    # python:3.11-slim -> 3.15-slim no compila scikit-learn 1.9.0: solo se
+    # aceptan parches dentro de la misma version menor (3.11.x).
+    ignore:
+      - dependency-name: "python"
+        update-types:
+          - "version-update:semver-major"
+          - "version-update:semver-minor"
 
   # Versiones de las actions usadas en los workflows
   - package-ecosystem: github-actions
@@ -30,3 +43,6 @@ updates:
     labels: [dependencies, ci]
     commit-message:
       prefix: "chore(ci)"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
