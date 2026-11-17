@@ -23,6 +23,9 @@ jobs:
   snyk:
     name: Snyk (SCA + Code)
     runs-on: ubuntu-latest
+    # Los PRs de Dependabot no reciben secrets del repositorio. Se omiten
+    # aqui y el escaneo completo corre en push/schedule sobre main.
+    if: github.actor != 'dependabot[bot]'
 
     steps:
       - name: Descargar codigo
@@ -78,6 +81,8 @@ jobs:
   sonar:
     name: SonarCloud
     runs-on: ubuntu-latest
+    # Sin secrets en PRs de Dependabot: el analisis corre en main.
+    if: github.actor != 'dependabot[bot]'
 
     steps:
       - name: Descargar codigo
