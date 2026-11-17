@@ -47,7 +47,7 @@ def test_main_sin_credenciales_no_sube_a_s3(monkeypatch):
     eventos = {}
     monkeypatch.setattr(run_pipeline, "descargar_datos", lambda: None)
 
-    def fake_entrenar(ruta):
+    def fake_entrenar(ruta, **_kwargs):
         eventos["bucket_al_entrenar"] = run_pipeline.os.getenv("S3_BUCKET_NAME")
 
     monkeypatch.setattr(run_pipeline, "entrenar", fake_entrenar)
@@ -63,7 +63,7 @@ def test_main_con_credenciales_valida_estricto(monkeypatch):
     monkeypatch.setenv("S3_BUCKET_NAME", "bucket-demo")
     eventos = {}
     monkeypatch.setattr(run_pipeline, "descargar_datos", lambda: None)
-    monkeypatch.setattr(run_pipeline, "entrenar", lambda ruta: None)
+    monkeypatch.setattr(run_pipeline, "entrenar", lambda ruta, **_kwargs: None)
     monkeypatch.setattr(run_pipeline.health, "main", lambda args: eventos.setdefault("args", args) and 0)
 
     assert run_pipeline.main() == 0

@@ -1,0 +1,24 @@
+# Quality gate del modelo.
+#
+# Estos umbrales se evaluan DESPUES de entrenar y ANTES de publicar los
+# artefactos en S3. Si alguna metrica queda por debajo del minimo, el
+# pipeline falla y no se reemplaza el modelo en produccion (IE6 de la EP3).
+#
+# Los valores parten del baseline actual (roc_auc 0.65, f1 0.47) con un
+# margen de tolerancia, de modo que el gate bloquea regresiones reales sin
+# romper por ruido normal entre corridas.
+
+enabled: true
+
+# Tamano minimo del set de test: evita aprobar modelos evaluados con muy
+# pocos datos.
+min_test_size: 1000
+
+# Minimos por metrica (clave = campo de ml/artefactos/metricas.json).
+thresholds:
+  roc_auc: 0.62
+  pr_auc: 0.40
+  f1_score: 0.42
+  recall: 0.60
+  precision: 0.30
+  accuracy: 0.52

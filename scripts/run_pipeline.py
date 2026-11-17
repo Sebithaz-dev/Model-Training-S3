@@ -53,7 +53,7 @@ def main() -> int:
         # Sin credenciales no se puede escribir en S3: artefactos solo locales.
         os.environ.pop("S3_BUCKET_NAME", None)
 
-    entrenar(str(DESTINO))
+    entrenar(str(DESTINO), quality_gate=True)
 
     args = ["--json", "--strict"] if con_credenciales else ["--json", "--skip-s3"]
     return health.main(args)
