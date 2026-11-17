@@ -16,6 +16,23 @@ updates:
     ignore:
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
+      # Refuerzo por version: la regla comodin no frena los PR que solo
+      # amplian el rango de requirements.txt (pytest >=7.4 -> >=9.2.0 se
+      # volvio a abrir el 2026-11-17 aunque es un salto mayor).
+      - dependency-name: "pytest"
+        versions: [">=9.0.0"]
+      - dependency-name: "pandas"
+        versions: [">=3.0.0"]
+      - dependency-name: "scikit-learn"
+        versions: [">=2.0.0"]
+      - dependency-name: "pytest-cov"
+        versions: [">=7.0.0"]
+    # Un solo PR para minor+patch de Python: menos ruido de CI y menos
+    # notificaciones por run fallido.
+    groups:
+      python-minor-patch:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
 
   # Imagen base del Dockerfile
   - package-ecosystem: docker
