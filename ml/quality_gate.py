@@ -153,6 +153,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Evalua el quality gate del modelo")
     parser.add_argument(
         "--metrics",
+        type=argparse.FileType("r", encoding="utf-8"),
         default="ml/artefactos/metricas.json",
         help="Ruta a metricas.json (default: ml/artefactos/metricas.json)",
     )
@@ -164,8 +165,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--json", action="store_true", help="Salida JSON")
     args = parser.parse_args(argv)
 
-    with open(args.metrics, encoding="utf-8") as f:
-        metrics = json.load(f)
+    with args.metrics as metrics_file:
+        metrics = json.load(metrics_file)
 
     gate = load_gate(args.config)
     resultado = evaluate(metrics, gate) if gate.enabled else GateResult(passed=True)
