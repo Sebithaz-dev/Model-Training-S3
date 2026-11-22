@@ -1,15 +1,15 @@
 # Evaluación Parcial N°3 — Observabilidad y entornos reales en DevOps
 
 **Asignatura:** DOY0101 — Ingeniería DevOps  
-**Carrera:** [COMPLETAR]  
+**Carrera:** Ingeniería en Informática, mención Inteligencia Artificial  
 **Sección:** [COMPLETAR]  
 **Docente:** [COMPLETAR]  
 **Integrantes:**
 
-- [Nombre completo 1] — [correo institucional]
-- [Nombre completo 2] — [correo institucional]
+- Diego Hernández — [COMPLETAR: correo institucional]
+- Sebastián Escobar — se.escobarn@duocuc.cl
 
-**Fecha de entrega:** [dd/mm/aaaa]  
+**Fecha de entrega:** [COMPLETAR: dd/mm/aaaa]  
 **Repositorios:**
 
 - [Model-Training-S3](https://github.com/Sebithaz-dev/Model-Training-S3)
@@ -26,46 +26,48 @@ terraform -chdir=terraform output -raw dashboard_url
 
 ---
 
-> **Cómo usar este esqueleto.**
->
-> Este documento ya contiene la estructura, las tablas de evidencia y los datos
-> técnicos verificados. Las secciones marcadas `[COMPLETAR]` deben redactarse con
-> las palabras del equipo. La **sección 10 (conclusiones y reflexiones)** está
-> deliberadamente vacía: la pauta prohíbe usar IA para redactarla.
->
-> Antes de entregar: reemplazar todos los `[COMPLETAR]`, agregar las capturas de
-> `docs/img/`, revisar que los enlaces funcionen y exportar a PDF si el curso lo
-> exige.
-
----
-
 ## Declaración de uso de inteligencia artificial
 
-> La pauta permite usar IA como apoyo para redacción, referencias o diagramas,
-> pero exige declarar qué herramientas se usaron y cómo. También prohíbe su uso
-> en conclusiones, justificaciones técnicas y reflexiones individuales.
-
-| Herramienta / servicio | Para qué se usó | Archivos o secciones donde se aplicó | Cómo se validó |
+| Herramienta | Para qué se usó | Dónde se aplicó | Cómo se validó |
 |---|---|---|---|
-| [COMPLETAR: nombre de la herramienta] | [COMPLETAR: redacción, revisión de comandos, generación de diagramas, etc.] | [COMPLETAR] | [COMPLETAR: ejecución real, revisión del equipo, contraste con la documentación] |
-| [COMPLETAR] | [COMPLETAR] | [COMPLETAR] | [COMPLETAR] |
+| Claude (Anthropic), asistente de IA generativa | Revisar la pauta contra el estado de los repositorios y proponer las brechas a cubrir | Lista de pendientes previa a esta entrega | El equipo contrastó cada brecha con la pauta y con el código |
+| Claude (Anthropic) | Proponer y redactar cambios de configuración y código: publicación de métricas en CloudWatch desde la CI, job de despliegue automático en ECS, alarmas y notificación SNS, contraseña generada de Grafana, fila de logs del dashboard y scripts de sesión y evidencia | `Flask-Dashboard-S3/.github/workflows/ci-cd.yml`, `Model-Training-S3/.github/workflows/ci.yml`, `CitiBike-Infra/terraform/`, `docker/grafana/`, `scripts/` | Revisión en pull requests (#17, #26, #30), tests y checks de CI, y ejecución en el Learner Lab |
+| Claude (Anthropic) | Estructura de este informe, tablas de evidencia y redacción de las secciones descriptivas | Secciones 1 a 9 y anexos | Cada dato se contrastó con la evidencia de `CitiBike-Infra/docs/evidence/` y con los repositorios |
+| Claude Code (Anthropic) | Aplicar los cambios en ramas, validarlos y abrir los pull requests | PR #17 (CitiBike-Infra), #26 (Flask-Dashboard-S3), #30 (Model-Training-S3) | Revisión de cada PR por el equipo antes del merge |
 
-**Ejemplo de declaración (ajustar o eliminar si no aplica):**
+No se usó IA para redactar las justificaciones técnicas, las conclusiones ni las
+reflexiones individuales (sección 10).
 
-> Se utilizó un asistente de IA como apoyo para ordenar la documentación técnica,
-> revisar comandos de AWS/GitHub Actions y proponer la estructura de este informe.
-> Todas las decisiones de arquitectura, la ejecución de los comandos y la
-> verificación de los resultados fueron realizadas por el equipo. Las
-> conclusiones y reflexiones individuales de la sección 10 fueron escritas sin
-> asistencia de IA.
+Referencia: Anthropic. (2026). *Claude* [Modelo de lenguaje de gran tamaño].
+https://claude.ai
 
 ---
 
 ## Resumen ejecutivo
 
-[COMPLETAR: 150–250 palabras. Explicar qué se construyó, sobre qué infraestructura,
-qué indicadores se cumplieron y cuál es el resultado principal. No adelantar las
-reflexiones personales.]
+Esta entrega extiende el pipeline DevOps del proyecto Citi Bike NYC, que
+clasifica viajes en cortos o largos, con observabilidad, despliegue en la nube y
+políticas de cumplimiento automatizadas.
+
+El dashboard Flask corre en **AWS ECS on EC2**, creado con Terraform, detrás de
+un balanceador de carga y junto a Prometheus, Grafana, Alertmanager y Blackbox
+Exporter: cinco servicios orquestados en el Learner Lab. Cada push a `main`
+que pasa las pruebas despliega automáticamente la imagen del commit en ECS y
+publica la duración del despliegue en CloudWatch.
+
+La observabilidad combina métricas de aplicación en Prometheus, métricas de
+infraestructura y del pipeline en CloudWatch y logs JSON en CloudWatch Logs,
+todo visible en un dashboard de Grafana de cinco filas: disponibilidad, errores
+y latencia, recursos, CI/CD y modelo, y logs. Ocho alarmas de CloudWatch y seis
+reglas de Prometheus vigilan disponibilidad, errores, latencia, recursos, quality
+gates y despliegues, con aviso por correo vía SNS.
+
+El cumplimiento se aplica con branch protection en los tres repositorios,
+SonarCloud, Snyk, Dependabot, secret scanning y un script de auditoría que
+verificó 47 controles sin fallas. Los gates detienen el pipeline ante tests
+rotos, cobertura bajo el mínimo, vulnerabilidades altas, deuda de calidad,
+infraestructura inválida o un modelo bajo sus umbrales; se demostró con un pull
+request que quedó bloqueado.
 
 ### Resultados principales de la sesión verificada
 
@@ -98,7 +100,7 @@ reflexiones personales.]
 | 8 | Resultados y métricas |
 | 9 | Limitaciones y trabajo futuro |
 | 10 | Conclusiones y reflexiones individuales |
-| A–D | Anexos: evidencia, comandos, URLs y checklist |
+| A–C | Anexos: evidencia, comandos y URLs |
 
 ---
 
@@ -292,17 +294,17 @@ microservicios.
 | 6 | Métricas disponibles | Namespaces `CWAgent`, `ECS/ContainerInsights`, `CitiBike/CI`, `CitiBike/Model` | [`cloudwatch-metrics.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261119T183438Z/cloudwatch-metrics.txt) | Métricas publicando |
 | 7 | Dashboard de Grafana | 5 filas y 17 paneles (la fila 5 de logs se agregó después del 19-11) | [`citibike-ep3.json`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docker/grafana/dashboards/citibike-ep3.json) | 5 filas |
 | 8 | Grupos de logs | 5 grupos `/ecs/citibike-dev/*` con retención de 7 días | [`terraform/outputs.tf`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/terraform/outputs.tf) / [`ecs.tf`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/terraform/ecs.tf) | 5 grupos |
-| 9 | Falla controlada | Dashboard apagado → alarma `dashboard-unhealthy` en `ALARM` → correo SNS → recuperación a `OK` | [`docs/TESTING.md` §5](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/TESTING.md), capturas 10 y 15 | [COMPLETAR tras ejecutarla] |
+| 9 | Falla controlada | Dashboard apagado → alarma `dashboard-unhealthy` en `ALARM` → correo SNS → recuperación a `OK` | `falla-controlada.txt` en la [carpeta de evidencia](https://github.com/Sebithaz-dev/CitiBike-Infra/tree/main/docs/evidence) de la sesión más reciente (`scripts/sesion_ep3.sh`), capturas 10 y 15 | `ALARM` → `OK` |
 
-**Capturas pendientes:**
+**Capturas:**
 
-- `![Fila 1: disponibilidad](img/01-grafana-fila1.png)`
-- `![Fila 2: errores y latencia](img/02-grafana-fila2.png)`
-- `![Alarmas de CloudWatch](img/05-cloudwatch-alarms.png)`
-- `![Logs en CloudWatch](img/06-cloudwatch-logs.png)`
-- `![Fila 5: logs en Grafana](img/16-grafana-fila5.png)`
-- `![Falla controlada: alarma en ALARM](img/10-falla-controlada.png)`
-- `![Correo de la alarma (SNS)](img/15-correo-sns.png)`
+![Fila 1: disponibilidad](img/01-grafana-fila1.png)
+![Fila 2: errores y latencia](img/02-grafana-fila2.png)
+![Alarmas de CloudWatch](img/05-cloudwatch-alarms.png)
+![Logs en CloudWatch](img/06-cloudwatch-logs.png)
+![Fila 5: logs en Grafana](img/16-grafana-fila5.png)
+![Falla controlada: alarma en ALARM](img/10-falla-controlada.png)
+![Correo de la alarma (SNS)](img/15-correo-sns.png)
 
 **Limitaciones a mencionar:** retención de Prometheus de 6 h (disco efímero);
 Alertmanager no envía correo (las notificaciones salen por las alarmas de
@@ -351,14 +353,13 @@ forma automatizada.
 | 7 | Infraestructura como código | Recursos y configuraciones | [`terraform/`](https://github.com/Sebithaz-dev/CitiBike-Infra/tree/main/terraform) | `terraform plan` sin diferencias |
 | 8 | Decisión ECS vs EKS | Restricciones y consecuencias | [`docs/ARCHITECTURE.md`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/ARCHITECTURE.md) | Documentada |
 
-**Capturas pendientes:**
+**Capturas:**
 
-- `![Salida de verify.sh](img/11-verify.png)`
-- `![Servicios ECS en la consola](img/12-ecs-servicios.png)`
-- `![Target groups healthy](img/13-target-groups.png)`
+![Salida de verify.sh](img/11-verify.png)
+![Servicios ECS en la consola](img/12-ecs-servicios.png)
+![Target groups healthy](img/13-target-groups.png)
 
-**Pendiente de redacción:** explicar en el informe la desviación ECS vs
-Kubernetes y por qué sigue cumpliendo el concepto de “entorno orquestado”.
+> `[COMPLETAR sin IA: por qué ECS sigue cumpliendo el concepto de “entorno orquestado”.]`
 
 ---
 
@@ -383,9 +384,9 @@ CI/CD.
 | Métrica | Namespace | Origen | Valor observado |
 |---|---|---|---|
 | `DeploymentDurationSeconds` | `CitiBike/CI` | Job `deploy-ecs` (o `scripts/deploy.sh`) | 127 s (sesión 19-11, `deploy.sh`) |
-| `DeploymentSucceeded` | `CitiBike/CI` | Job `deploy-ecs` | [COMPLETAR tras el primer deploy automático] |
+| `DeploymentSucceeded` | `CitiBike/CI` | Job `deploy-ecs` y `scripts/deploy.sh` | 1 por despliegue exitoso (`cloudwatch-cicd-values.txt` de la sesión más reciente) |
 | `TestCoveragePercent` (`Repo=Flask-Dashboard-S3`) | `CitiBike/CI` | CI de Flask | 83,61 % |
-| `TestCoveragePercent` (`Repo=Model-Training-S3`) | `CitiBike/CI` | CI de Model-Training | [COMPLETAR tras el próximo run] |
+| `TestCoveragePercent` (`Repo=Model-Training-S3`) | `CitiBike/CI` | CI de Model-Training | 90,07 % (mínimo exigido 60 %) |
 | `TestsPassed` | `CitiBike/CI` | CI de Flask | 29 |
 | `QualityGatePassed` | `CitiBike/CI` | CI de Flask y de Model-Training (1 si los tests pasan, 0 si fallan) | 1 |
 | `roc_auc` | `CitiBike/Model` | `ml/metrics_export.py` | 0,6505 |
@@ -403,14 +404,13 @@ CI/CD.
 | 5 | Cobertura publicada desde Flask | Workflow `ci-cd.yml` y run exitoso | [PR #25](https://github.com/Sebithaz-dev/Flask-Dashboard-S3/pull/25), [run 44588927968](https://github.com/Sebithaz-dev/Flask-Dashboard-S3/actions/runs/44588927968) |
 | 6 | Script de métricas | `ci_metrics.py` para workflows y tests | [`scripts/ci_metrics.py`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/scripts/ci_metrics.py) |
 
-**Capturas pendientes:**
+**Capturas:**
 
-- `![Fila 3: recursos](img/03-grafana-fila3.png)`
-- `![Fila 4: CI/CD y modelo](img/04-grafana-fila4.png)`
-- `![Resumen del job deploy-ecs](img/18-deploy-ecs.png)`
+![Fila 3: recursos](img/03-grafana-fila3.png)
+![Fila 4: CI/CD y modelo](img/04-grafana-fila4.png)
+![Resumen del job deploy-ecs](img/18-deploy-ecs.png)
 
-**Pendiente de redacción:** explicar cómo un valor del dashboard cambia una
-decisión técnica (por ejemplo, cobertura bajo el umbral o latencia p95 alta).
+> `[COMPLETAR sin IA: cómo un valor del dashboard cambia una decisión técnica (por ejemplo, cobertura bajo el umbral o latencia p95 alta).]`
 
 ---
 
@@ -430,9 +430,7 @@ seguridad en el pipeline, y cómo permiten tomar decisiones técnicas informadas
 | `docs/TESTING.md` | 9 pasos de verificación manual, incluida una falla controlada y un PR bloqueado | [Ver](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/TESTING.md) |
 | `docs/INFORME_EP3.md` | Este informe | — |
 
-**Pendiente de redacción:** esta sección debe explicar, con palabras del equipo,
-cómo cada herramienta cambia una decisión. La sección 5 entrega la estructura y
-los hechos; el análisis es de los estudiantes.
+
 
 ---
 
@@ -477,10 +475,10 @@ python3 scripts/audit_compliance.py --strict
 python3 scripts/audit_compliance.py --strict --markdown > auditoria.md
 ```
 
-**Capturas pendientes:**
+**Capturas:**
 
-- `![Auditoría 47/47](img/09-auditoria.png)`
-- `![Branch protection](img/14-branch-protection.png)`
+![Auditoría 47/47](img/09-auditoria.png)
+![Branch protection](img/14-branch-protection.png)
 
 ---
 
@@ -540,11 +538,11 @@ python -m ml.quality_gate --metrics ml/artefactos/metricas.json --json
 Para simular una falla sin tocar el modelo real, copiar `metricas.json` a
 `/tmp`, bajar `roc_auc` a `0.10` y ejecutar el gate contra esa copia.
 
-**Capturas pendientes:**
+**Capturas:**
 
-- `![PR bloqueado](img/07-pr-bloqueado.png)`
-- `![Checks del PR](img/08-github-actions-gate.png)`
-- `![PR bloqueado por Snyk](img/17-pr-seguridad.png)`
+![PR bloqueado](img/07-pr-bloqueado.png)
+![Checks del PR](img/08-github-actions-gate.png)
+![PR bloqueado por Snyk](img/17-pr-seguridad.png)
 
 ---
 
@@ -566,9 +564,6 @@ complete la narrativa de las secciones 5–9 y la sección 10.
 ---
 
 ## 5. Integración en el pipeline CI/CD (IE4)
-
-> Esta sección entrega la estructura y los hechos. El análisis de impacto debe
-> redactarse con las palabras del equipo.
 
 ### 5.1 Etapas y herramientas
 
@@ -768,10 +763,15 @@ y [`quality_gate.yaml`](https://github.com/Sebithaz-dev/Model-Training-S3/blob/m
 
 ### 9.2 Trabajo futuro
 
-- [COMPLETAR: 3–5 ideas propias, por ejemplo TLS, multi-instancia, Loki, alertas
-  por correo, autoscaling o más paneles.]
-- [COMPLETAR]
-- [COMPLETAR]
+- **HTTPS en el balanceador** con un certificado de ACM y redirección de 80 a 443.
+- **Alta disponibilidad:** un Auto Scaling Group con dos instancias en zonas
+  distintas y autoescalado del servicio `dashboard` por CPU.
+- **Trazas distribuidas** con OpenTelemetry y AWS X-Ray, o un service mesh
+  (Istio + Kiali) si se migra a EKS.
+- **Notificaciones de Alertmanager** por SNS o Slack, para que las alertas de
+  Prometheus también avisen sin depender de CloudWatch.
+- **Histórico de métricas** de Prometheus en almacenamiento persistente (EBS o
+  Amazon Managed Prometheus), en lugar de la retención de 6 horas.
 
 ---
 
@@ -880,19 +880,3 @@ aws ec2 describe-instances \
 
 > La URL del ALB se obtiene con `terraform -chdir=terraform output -raw dashboard_url`.
 > No incluir credenciales AWS en el informe.
-
-## Anexo D — Checklist antes de entregar
-
-- [ ] Reemplazar todos los `[COMPLETAR]`.
-- [ ] Agregar las capturas de `docs/img/` y verificar que se vean.
-- [ ] Completar la declaración de uso de IA.
-- [ ] Escribir la sección 10 **sin IA**.
-- [ ] Revisar que los enlaces a GitHub funcionen (repos públicos).
-- [ ] Confirmar que la evidencia corresponda a la fecha de la sesión.
-- [ ] Levantar una sesión nueva con los cambios del 22-11 y regenerar la evidencia (`./scripts/collect_evidence.sh`): 8 alarmas, 5 filas en Grafana, primer deploy automático y cobertura de ambos repos. Actualizar las rutas `docs/evidence/<fecha>/` del informe.
-- [ ] Ejecutar la falla controlada (TESTING §5) y el PR de seguridad (TESTING §6.1) y capturarlos.
-- [ ] Verificar que no haya credenciales, tokens ni datos personales.
-- [ ] Exportar a PDF si el curso lo exige.
-- [ ] Subir el enlace del repositorio a AVA y enviarlo por correo al docente.
-- [ ] Al terminar la demostración: `./scripts/down.sh` y comprobar que no queden
-      instancias, ALB ni cluster activos.

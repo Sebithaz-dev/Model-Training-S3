@@ -6,6 +6,13 @@
 
 Pipeline de entrenamiento automatizado para clasificar la duración de viajes de Citi Bike NYC en **corto** (≤ 15 min) o **largo** (> 15 min), utilizando datos curados desde AWS Glue y subiendo artefactos a S3.
 
+> **Evaluación Parcial 3 (DOY0101):** el informe está en
+> [`docs/INFORME_EP3.md`](docs/INFORME_EP3.md). El proyecto se compone de tres
+> repositorios: este (entrenamiento),
+> [Flask-Dashboard-S3](https://github.com/Sebithaz-dev/Flask-Dashboard-S3)
+> (microservicio) y [CitiBike-Infra](https://github.com/Sebithaz-dev/CitiBike-Infra)
+> (infraestructura, observabilidad y evidencia).
+
 ---
 
 ## Arquitectura
