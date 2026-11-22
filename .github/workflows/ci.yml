@@ -45,10 +45,78 @@ jobs:
         run: ruff check ml tests scripts
 
       - name: Tests (pytest + cobertura)
-        run: pytest tests/ -v --cov=ml --cov-report=xml --cov-report=term --cov-fail-under=60
+        id: tests
+        run: |
+          pytest tests/ -v --cov=ml --cov-report=xml --cov-report=term --cov-fail-under=60 \
+            --junitxml=report.xml
 
       - name: Health check (config)
         run: python -m ml.health --json --skip-s3 --skip-artifacts
+
+      # IE3: cobertura y resultado del gate en CloudWatch (CitiBike/CI), igual
+      # que en Flask-Dashboard-S3. Corre tambien si los tests fallan para
+      # publicar QualityGatePassed=0. Sin credenciales vigentes del Learner Lab
+      # solo deja un warning.
+      - name: Preflight de credenciales AWS
+        id: aws
+        if: always()
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+          AWS_DEFAULT_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
+        run: |
+          if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ] || [ -z "$AWS_SESSION_TOKEN" ]; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Sin secrets de AWS: no se publican metricas en CloudWatch."
+          elif aws sts get-caller-identity >/dev/null 2>&1; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Credenciales AWS expiradas: no se publican metricas en CloudWatch."
+          fi
+
+      - name: Configurar credenciales AWS
+        if: always() && steps.aws.outputs.ready == 'true'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+
+      - name: Publicar metricas de calidad en CloudWatch (CitiBike/CI)
+        if: always() && steps.aws.outputs.ready == 'true'
+        env:
+          TESTS_OUTCOME: ${{ steps.tests.outcome }}
+          REPO: Model-Training-S3
+        run: |
+          read -r coverage passed failed < <(python - <<'PY'
+          import os
+          import xml.etree.ElementTree as ET
+
+          coverage = passed = failed = 0.0
+          if os.path.exists("coverage.xml"):
+              coverage = float(ET.parse("coverage.xml").getroot().get("line-rate", 0)) * 100
+          if os.path.exists("report.xml"):
+              root = ET.parse("report.xml").getroot()
+              suite = root if root.tag == "testsuite" else root.find("testsuite")
+              tests = int(suite.get("tests", 0))
+              failed = int(suite.get("failures", 0)) + int(suite.get("errors", 0))
+              passed = tests - failed
+          print(f"{coverage:.2f} {int(passed)} {int(failed)}")
+          PY
+          )
+
+          if [ "$TESTS_OUTCOME" = "success" ]; then gate=1; else gate=0; fi
+
+          aws cloudwatch put-metric-data --namespace CitiBike/CI --metric-data \
+            "MetricName=TestCoveragePercent,Value=${coverage},Unit=Percent,Dimensions=[{Name=Repo,Value=${REPO}}]" \
+            "MetricName=TestsPassed,Value=${passed},Unit=Count,Dimensions=[{Name=Repo,Value=${REPO}}]" \
+            "MetricName=TestsFailed,Value=${failed},Unit=Count,Dimensions=[{Name=Repo,Value=${REPO}}]"
+          aws cloudwatch put-metric-data --namespace CitiBike/CI --metric-data \
+            "MetricName=QualityGatePassed,Value=${gate},Unit=None"
+          echo "Publicado (${REPO}): cobertura ${coverage}%, ${passed} OK, ${failed} fallidos, gate=${gate}."
 
   docker:
     name: Imagen Docker (build, smoke test y publicacion)

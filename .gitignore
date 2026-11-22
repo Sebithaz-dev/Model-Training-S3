@@ -8,3 +8,5 @@ data/
 coverage.xml
 htmlcov/
 *.sarif
+
+report.xml
