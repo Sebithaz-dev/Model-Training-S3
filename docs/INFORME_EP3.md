@@ -133,14 +133,14 @@ orquestado en la nube**, **dashboards**, **políticas de cumplimiento** y
 |---|---|
 | Observabilidad con Prometheus, Grafana y CloudWatch | Stack ELK/Loki o SIEM corporativo |
 | ECS on EC2 en AWS real, con ALB y 5 servicios | EKS/Kubernetes real en AWS (se usó `kind` en EP2) |
-| Dashboard unificado de 4 filas | Alta disponibilidad multi-AZ y autoscaling |
+| Dashboard unificado de 5 filas (incluye logs) | Alta disponibilidad multi-AZ y autoscaling |
 | Branch protection, SonarCloud, Snyk y auditoría propia | Cumplimiento formal ISO 27001 certificado |
 | Gates de calidad, cobertura, seguridad y modelo | Pruebas de carga y chaos engineering |
 | Evidencia reproducible y runbook operativo | TLS/dominio propio y WAF |
 
 > **Nota sobre IE2:** la pauta pide “entornos orquestados en la nube”. Se eligió
-> **ECS on EC2** en lugar de EKS por las restricciones del Learner Lab. La
-> decisión y sus consecuencias están en
+> **ECS on EC2** en lugar de EKS, con autorización del docente del curso por
+> costos. La decisión y sus consecuencias están en
 > [`CitiBike-Infra/docs/ARCHITECTURE.md` §Decisión 1](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/ARCHITECTURE.md).
 > `[COMPLETAR: explicar con palabras propias por qué se eligió ECS y qué se gana/pierde.]`
 
@@ -168,10 +168,10 @@ orquestado en la nube**, **dashboards**, **políticas de cumplimiento** y
       └───────────────────────────────┬───────────────────────────────────────────────┘
                                       │ awslogs
                                       ▼
-                   CloudWatch Logs (5 grupos) · CloudWatch Metrics · 7 alarmas
+                   CloudWatch Logs (5 grupos) · CloudWatch Metrics · 8 alarmas → SNS
                                       ▲
                                       │ datasource CloudWatch + Prometheus
-                                 Grafana (4 filas)
+                                 Grafana (5 filas)
 ```
 
 ### 2.2 Componentes
@@ -187,7 +187,7 @@ orquestado en la nube**, **dashboards**, **políticas de cumplimiento** y
 | **Grafana** | Dashboard unificado | Datasources CloudWatch y Prometheus; dashboard `citibike-ep3` |
 | **CloudWatch Logs** | Logs de los 5 contenedores | 5 grupos `/ecs/citibike-dev/*`, retención 7 días |
 | **CloudWatch Metrics** | CPU/memoria de instancia y contenedores; métricas CI/CD y modelo | `CWAgent`, `ECS/ContainerInsights`, `CitiBike/CI`, `CitiBike/Model` |
-| **CloudWatch Alarms** | 7 alarmas de disponibilidad, errores, latencia, recursos y gates | `terraform/monitoring.tf`; SNS opcional con `var.alarm_email` |
+| **CloudWatch Alarms** | 8 alarmas de disponibilidad, errores, latencia, recursos, gates y despliegue | `terraform/monitoring.tf`; notificación por correo vía SNS (`alarm_email`) al entrar en `ALARM` y al volver a `OK` |
 | **S3** | Datos curados y artefactos del modelo | Bucket `citibike-datalake-seb-690247773624` |
 
 ### 2.3 Flujo CI/CD
@@ -210,7 +210,7 @@ orquestado en la nube**, **dashboards**, **políticas de cumplimiento** y
                         merge a main     PR BLOCKED
                                  │
                                  ▼
-                    deploy.sh · ECS rolling update
+            job deploy-ecs (automático) · ECS rolling update
                                  │
                                  ▼
                     verify.sh · Prometheus · Grafana · CloudWatch
@@ -271,8 +271,12 @@ microservicios.
   retención de 7 días.
 - **CloudWatch Agent** publica `mem_used_percent` y `disk_used_percent` de la
   instancia; `ECS/ContainerInsights` publica CPU/memoria por servicio.
-- **7 alarmas de CloudWatch**: disponibilidad, 5xx, latencia p95, CPU, memoria,
-  gate de CI y gate del modelo.
+- **8 alarmas de CloudWatch**: disponibilidad, 5xx, latencia p95, CPU, memoria,
+  gate de CI, gate del modelo y despliegue fallido. Notifican por correo vía SNS
+  (`alarm_email`) al pasar a `ALARM` y al volver a `OK`.
+- **Logs en Grafana**: la fila 5 del dashboard consulta CloudWatch Logs y
+  muestra los errores registrados (nivel `ERROR` o 5xx) y los logs recientes
+  del dashboard, en JSON con `request_id`.
 - **6 reglas de Prometheus**: `DashboardDown`, `PublicEndpointDown`,
   `GrafanaDown`, `HighErrorRate`, `HighLatencyP95`, `UnhandledErrors`.
 
@@ -283,12 +287,12 @@ microservicios.
 | 1 | Verificación end-to-end | 5 servicios ECS `1/1`, 2 targets `healthy`, 3 endpoints 200, Grafana OK | [`verify.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261119T183438Z/verify.txt) | `Todo OK` |
 | 2 | Targets de Prometheus | 5 series con `up=1` | [`prometheus-up.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261119T183438Z/prometheus-up.txt) | 5/5 |
 | 3 | Reglas de alerta | 6 reglas cargadas y en estado `inactive` | [`prometheus-rules.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261119T183438Z/prometheus-rules.txt) | 0 alertas activas |
-| 4 | Alarmas de CloudWatch | 7 alarmas en `OK` | [`cloudwatch-alarms.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261119T183438Z/cloudwatch-alarms.txt) | 7/7 |
+| 4 | Alarmas de CloudWatch | Alarmas en `OK` (7 en la sesión del 19-11; la octava, `deploy-failed`, se agregó después) | [`cloudwatch-alarms.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261119T183438Z/cloudwatch-alarms.txt) | 7/7 |
 | 5 | Códigos HTTP | `/health`, `/`, `/metrics`, Grafana | [`http-status.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261119T183438Z/http-status.txt) | 200 |
 | 6 | Métricas disponibles | Namespaces `CWAgent`, `ECS/ContainerInsights`, `CitiBike/CI`, `CitiBike/Model` | [`cloudwatch-metrics.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261119T183438Z/cloudwatch-metrics.txt) | Métricas publicando |
-| 7 | Dashboard de Grafana | 4 filas y 15 paneles | [`citibike-ep3.json`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docker/grafana/dashboards/citibike-ep3.json) | 4 filas |
+| 7 | Dashboard de Grafana | 5 filas y 17 paneles (la fila 5 de logs se agregó después del 19-11) | [`citibike-ep3.json`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docker/grafana/dashboards/citibike-ep3.json) | 5 filas |
 | 8 | Grupos de logs | 5 grupos `/ecs/citibike-dev/*` con retención de 7 días | [`terraform/outputs.tf`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/terraform/outputs.tf) / [`ecs.tf`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/terraform/ecs.tf) | 5 grupos |
-| 9 | Falla controlada | Procedimiento para tumbar el dashboard y ver la alarma | [`docs/TESTING.md` §5](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/TESTING.md) | Reproducible |
+| 9 | Falla controlada | Dashboard apagado → alarma `dashboard-unhealthy` en `ALARM` → correo SNS → recuperación a `OK` | [`docs/TESTING.md` §5](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/TESTING.md), capturas 10 y 15 | [COMPLETAR tras ejecutarla] |
 
 **Capturas pendientes:**
 
@@ -296,10 +300,13 @@ microservicios.
 - `![Fila 2: errores y latencia](img/02-grafana-fila2.png)`
 - `![Alarmas de CloudWatch](img/05-cloudwatch-alarms.png)`
 - `![Logs en CloudWatch](img/06-cloudwatch-logs.png)`
+- `![Fila 5: logs en Grafana](img/16-grafana-fila5.png)`
+- `![Falla controlada: alarma en ALARM](img/10-falla-controlada.png)`
+- `![Correo de la alarma (SNS)](img/15-correo-sns.png)`
 
 **Limitaciones a mencionar:** retención de Prometheus de 6 h (disco efímero);
-Alertmanager no envía correo en la demo; logs se consultan en CloudWatch, no en
-Grafana.
+Alertmanager no envía correo (las notificaciones salen por las alarmas de
+CloudWatch vía SNS); no hay trazas distribuidas.
 
 ---
 
@@ -323,7 +330,11 @@ forma automatizada.
   cacheadas.
 - **CloudWatch Agent** y **Container Insights** habilitados desde el
   `user_data`.
-- **`deploy.sh`** mide el despliegue y publica `DeploymentDurationSeconds`.
+- **Job `deploy-ecs`** (pipeline de Flask-Dashboard-S3): en cada push a `main`
+  registra una revisión de la task definition con la imagen `:<sha>`, actualiza
+  el servicio, espera estabilidad, detecta un rollback del circuit breaker y
+  publica `DeploymentDurationSeconds` y `DeploymentSucceeded`.
+- **`deploy.sh`** permite medir un despliegue manual con las mismas métricas.
 - **`verify.sh`** valida el estado end-to-end y devuelve exit code distinto de
   cero si algo falla.
 
@@ -357,23 +368,26 @@ Kubernetes y por qué sigue cumpliendo el concepto de “entorno orquestado”.
 pruebas, uso de CPU/memoria y errores registrados, integrados en el proceso
 CI/CD.
 
-**Dashboard `citibike-ep3` (4 filas):**
+**Dashboard `citibike-ep3` (5 filas):**
 
 | Fila | Paneles | Fuente | Qué muestra |
 |---|---|---|---|
 | **1. Disponibilidad** | Dashboard ECS, Dashboard Render, Quality gate del modelo, Servicios ECS corriendo, Disponibilidad por endpoint (blackbox) | Prometheus + CloudWatch | Estado de los endpoints y del gate |
 | **2. Errores y latencia** | Requests por segundo, Errores 5xx por segundo, Latencia p95 | Prometheus | Tráfico, errores y latencia del dashboard |
 | **3. Recursos** | CPU/memoria del servicio `dashboard`, CPU/memoria de la instancia ECS | `ECS/ContainerInsights`, `AWS/EC2`, `CWAgent` | Consumo real de recursos |
-| **4. CI/CD y modelo** | Duración del despliegue, Cobertura de tests, ROC-AUC del modelo | `CitiBike/CI`, `CitiBike/Model` | Métricas del pipeline y del modelo |
+| **4. CI/CD y modelo** | Duración del despliegue, Cobertura de tests por repo, ROC-AUC del modelo | `CitiBike/CI`, `CitiBike/Model` | Métricas del pipeline y del modelo |
+| **5. Logs** | Errores registrados en logs (ERROR o 5xx), Logs recientes del dashboard | CloudWatch Logs (`/ecs/citibike-dev/dashboard`) | Errores registrados y detalle de cada request |
 
 **Métricas publicadas:**
 
 | Métrica | Namespace | Origen | Valor observado |
 |---|---|---|---|
-| `DeploymentDurationSeconds` | `CitiBike/CI` | `scripts/deploy.sh` | 127 s |
-| `TestCoveragePercent` | `CitiBike/CI` | CI de Flask | 83,61 % |
+| `DeploymentDurationSeconds` | `CitiBike/CI` | Job `deploy-ecs` (o `scripts/deploy.sh`) | 127 s (sesión 19-11, `deploy.sh`) |
+| `DeploymentSucceeded` | `CitiBike/CI` | Job `deploy-ecs` | [COMPLETAR tras el primer deploy automático] |
+| `TestCoveragePercent` (`Repo=Flask-Dashboard-S3`) | `CitiBike/CI` | CI de Flask | 83,61 % |
+| `TestCoveragePercent` (`Repo=Model-Training-S3`) | `CitiBike/CI` | CI de Model-Training | [COMPLETAR tras el próximo run] |
 | `TestsPassed` | `CitiBike/CI` | CI de Flask | 29 |
-| `QualityGatePassed` | `CitiBike/CI` | CI de Flask | 1 |
+| `QualityGatePassed` | `CitiBike/CI` | CI de Flask y de Model-Training (1 si los tests pasan, 0 si fallan) | 1 |
 | `roc_auc` | `CitiBike/Model` | `ml/metrics_export.py` | 0,6505 |
 | `f1_score` | `CitiBike/Model` | `ml/metrics_export.py` | 0,4650 |
 | `QualityGatePassed` | `CitiBike/Model` | `ml/metrics_export.py` | 1 |
@@ -382,7 +396,7 @@ CI/CD.
 
 | # | Evidencia | Qué demuestra | Dónde verla |
 |---|---|---|---|
-| 1 | Dashboard JSON | 4 filas y paneles definidos como código | [`citibike-ep3.json`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docker/grafana/dashboards/citibike-ep3.json) |
+| 1 | Dashboard JSON | 5 filas y paneles definidos como código | [`citibike-ep3.json`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docker/grafana/dashboards/citibike-ep3.json) |
 | 2 | Verificación | Grafana con datasources y dashboard de 4 filas | [`verify.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261119T183438Z/verify.txt) |
 | 3 | Métricas de CI/CD | Valores en CloudWatch | [`cloudwatch-cicd-values.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261119T183438Z/cloudwatch-cicd-values.txt) |
 | 4 | Métricas del modelo | `roc_auc`, `f1_score`, `QualityGatePassed` | [`ml/metrics_export.py`](https://github.com/Sebithaz-dev/Model-Training-S3/blob/main/ml/metrics_export.py), [`README.md` — últimas métricas](https://github.com/Sebithaz-dev/Model-Training-S3/blob/main/README.md#últimas-métricas-test-temporal) |
@@ -393,6 +407,7 @@ CI/CD.
 
 - `![Fila 3: recursos](img/03-grafana-fila3.png)`
 - `![Fila 4: CI/CD y modelo](img/04-grafana-fila4.png)`
+- `![Resumen del job deploy-ecs](img/18-deploy-ecs.png)`
 
 **Pendiente de redacción:** explicar cómo un valor del dashboard cambia una
 decisión técnica (por ejemplo, cobertura bajo el umbral o latencia p95 alta).
@@ -479,12 +494,13 @@ el pipeline ante fallas críticas de seguridad o calidad.
 | Falla | Detector | Efecto | Evidencia |
 |---|---|---|---|
 | Test roto o cobertura bajo el umbral | `Run tests` / `Lint y tests` | Check requerido rojo → merge bloqueado | [`ie6-gate-bloqueante.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261119T183438Z/ie6-gate-bloqueante.txt) |
-| Vulnerabilidad alta o crítica | `Snyk (SCA + Code)` | Check requerido rojo | [`security.yml`](https://github.com/Sebithaz-dev/Model-Training-S3/blob/main/.github/workflows/security.yml) |
+| Vulnerabilidad alta o crítica | `Snyk (SCA + Code)` | Check requerido rojo | [`security.yml`](https://github.com/Sebithaz-dev/Model-Training-S3/blob/main/.github/workflows/security.yml), demo en [`docs/TESTING.md` §6.1](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/TESTING.md) |
 | Deuda de calidad sobre el umbral | `SonarCloud` | Check requerido rojo | [`security.yml`](https://github.com/Sebithaz-dev/Model-Training-S3/blob/main/.github/workflows/security.yml) |
 | Modelo bajo el umbral | `ml/quality_gate.py` | `ml.train` no publica en S3 y el workflow falla | [`quality_gate.yaml`](https://github.com/Sebithaz-dev/Model-Training-S3/blob/main/config/quality_gate.yaml) |
 | Infraestructura inválida | `Terraform fmt + validate` / configs de monitoreo | Check requerido rojo | [`infra-ci.yml`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/.github/workflows/infra-ci.yml) |
 | Servicio caído en producción | Alarma `*-dashboard-unhealthy` + `DashboardDown` | Alarma en `ALARM` visible en CloudWatch/Grafana | [`monitoring.tf`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/terraform/monitoring.tf) |
-| Despliegue que no estabiliza | Circuit breaker de ECS | Rollback automático | [`ecs.tf`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/terraform/ecs.tf) |
+| Despliegue que no estabiliza | Circuit breaker de ECS + job `deploy-ecs` | Rollback automático; el job falla y publica `DeploymentSucceeded=0` → alarma `deploy-failed` | [`ecs.tf`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/terraform/ecs.tf), [`ci-cd.yml`](https://github.com/Sebithaz-dev/Flask-Dashboard-S3/blob/main/.github/workflows/ci-cd.yml) |
+| Gate de CI fallido | `QualityGatePassed=0` publicado por el CI aunque los tests fallen | Alarma `ci-gate-failed` en `ALARM` + correo SNS | [`monitoring.tf`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/terraform/monitoring.tf) |
 
 **Evidencia empírica del PR bloqueado (PR #24 de Flask):**
 
@@ -528,6 +544,7 @@ Para simular una falla sin tocar el modelo real, copiar `metricas.json` a
 
 - `![PR bloqueado](img/07-pr-bloqueado.png)`
 - `![Checks del PR](img/08-github-actions-gate.png)`
+- `![PR bloqueado por Snyk](img/17-pr-seguridad.png)`
 
 ---
 
@@ -565,7 +582,7 @@ complete la narrativa de las secciones 5–9 y la sección 10.
 | Entrenamiento | `ml/train.py` + `quality_gate.py` | Métricas mínimas antes de publicar en S3 | Workflow rojo, sin artefactos nuevos | [`quality_gate.yaml`](https://github.com/Sebithaz-dev/Model-Training-S3/blob/main/config/quality_gate.yaml) |
 | Infraestructura | Terraform + validación de configs | Recursos válidos y reproducibles | Check rojo | [`.github/workflows/infra-ci.yml`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/.github/workflows/infra-ci.yml) |
 | Cumplimiento | `audit_compliance.py` | Gobierno, protección y workflows | Check rojo | [`.github/workflows/compliance.yml`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/.github/workflows/compliance.yml) |
-| Despliegue | `deploy.sh` + ECS | Rolling update y estabilidad | Circuit breaker / rollback | [`scripts/deploy.sh`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/scripts/deploy.sh) |
+| Despliegue | Job `deploy-ecs` + ECS | Rolling update, estabilidad y que no haya rollback | Job rojo, `DeploymentSucceeded=0`, alarma `deploy-failed` | [`ci-cd.yml`](https://github.com/Sebithaz-dev/Flask-Dashboard-S3/blob/main/.github/workflows/ci-cd.yml) |
 | Operación | Prometheus + Grafana + CloudWatch | Disponibilidad, errores, latencia, recursos | Alarma / dashboard en rojo | [`monitoring.tf`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/terraform/monitoring.tf) |
 
 ### 5.2 Decisiones que habilita el pipeline
@@ -742,11 +759,12 @@ y [`quality_gate.yaml`](https://github.com/Sebithaz-dev/Model-Training-S3/blob/m
 |---|---|---|
 | Una sola instancia ECS | Punto único de falla | Runbook, circuit breaker, recreación con Terraform |
 | Prometheus con retención de 6 h | No hay histórico largo | CloudWatch conserva métricas y logs |
-| Alertmanager sin correo en la demo | Las alertas no llegan por email | Se ven en Grafana/Prometheus; SNS opcional con `var.alarm_email` |
+| Alertmanager sin correo | Las alertas de Prometheus no llegan por email | Las alarmas equivalentes de CloudWatch notifican por SNS (`alarm_email`) |
 | Dashboard público sin TLS | Tráfico sin cifrar | Excepción de demo documentada; en producción ACM + HTTPS |
 | Credenciales del Learner Lab de 4 h | Los workflows se degradan sin credenciales | Preflight y warning en `train.yml` / CI de Flask |
 | ECS en lugar de EKS | No hay portabilidad directa de Kubernetes | Manifiestos de EP2 conservados; decisión documentada |
-| Logs solo en CloudWatch | No se consultan desde Grafana | Enlace directo y `aws logs tail` en el runbook |
+| Sin trazas distribuidas | No se sigue una request entre servicios | `request_id` en logs JSON; Istio/Kiali o X-Ray como trabajo futuro |
+| Entrenamiento programado sin credenciales | `train.yml` se omite en verde si las credenciales del lab vencieron | Resumen "Entrenamiento omitido" en el run; relanzar con `workflow_dispatch` |
 
 ### 9.2 Trabajo futuro
 
@@ -855,7 +873,7 @@ aws ec2 describe-instances \
 | Dashboard | `http://<alb-dns>` |
 | Grafana | `http://<alb-dns>:3000` |
 | Usuario Grafana | `admin` |
-| Password Grafana | `citibike-ep3` (demo) |
+| Password Grafana | Generada por Terraform: `terraform -chdir=terraform output -raw grafana_admin_password` |
 | Dashboard UID | `citibike-ep3` |
 | Cluster ECS | `citibike-dev-cluster` |
 | Región | `us-east-1` |
@@ -871,6 +889,8 @@ aws ec2 describe-instances \
 - [ ] Escribir la sección 10 **sin IA**.
 - [ ] Revisar que los enlaces a GitHub funcionen (repos públicos).
 - [ ] Confirmar que la evidencia corresponda a la fecha de la sesión.
+- [ ] Levantar una sesión nueva con los cambios del 22-11 y regenerar la evidencia (`./scripts/collect_evidence.sh`): 8 alarmas, 5 filas en Grafana, primer deploy automático y cobertura de ambos repos. Actualizar las rutas `docs/evidence/<fecha>/` del informe.
+- [ ] Ejecutar la falla controlada (TESTING §5) y el PR de seguridad (TESTING §6.1) y capturarlos.
 - [ ] Verificar que no haya credenciales, tokens ni datos personales.
 - [ ] Exportar a PDF si el curso lo exige.
 - [ ] Subir el enlace del repositorio a AVA y enviarlo por correo al docente.

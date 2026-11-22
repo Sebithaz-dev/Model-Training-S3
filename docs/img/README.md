@@ -10,15 +10,20 @@ Markdown.
 | `02-grafana-fila2.png` | Fila **2. Errores y latencia** con tráfico reciente | Grafana → dashboard `citibike-ep3` |
 | `03-grafana-fila3.png` | Fila **3. Recursos** (servicio e instancia) | Grafana → dashboard `citibike-ep3` |
 | `04-grafana-fila4.png` | Fila **4. CI/CD y modelo** (duración, cobertura, ROC-AUC) | Grafana → dashboard `citibike-ep3` |
-| `05-cloudwatch-alarms.png` | Las 7 alarmas en estado `OK` | Consola AWS → CloudWatch → Alarms |
+| `05-cloudwatch-alarms.png` | Las 8 alarmas en estado `OK` | Consola AWS → CloudWatch → Alarms |
 | `06-cloudwatch-logs.png` | Último stream de `/ecs/citibike-dev/dashboard` | Consola AWS → CloudWatch → Log groups |
 | `07-pr-bloqueado.png` | PR de demo con `mergeStateStatus = BLOCKED` | GitHub → Pull requests |
 | `08-github-actions-gate.png` | Checks `Run tests` / `SonarCloud` en rojo y jobs en `skipping` | GitHub → Actions |
 | `09-auditoria.png` | Salida `47 controles, 0 fallas, 0 no evaluables` | Terminal o GitHub Actions |
+| `10-falla-controlada.png` | Alarma `citibike-dev-dashboard-unhealthy` en `ALARM` y fila 1 en rojo | `docs/TESTING.md` §5 (CitiBike-Infra) |
 | `11-verify.png` | Salida de `./scripts/verify.sh --wait` con `Todo OK` | Terminal |
 | `12-ecs-servicios.png` | Los 5 servicios ECS en `1/1` | Consola AWS → ECS |
 | `13-target-groups.png` | Target groups `healthy` | Consola AWS → EC2 → Target groups |
 | `14-branch-protection.png` | Reglas de protección de `main` | GitHub → Settings → Branches |
+| `15-correo-sns.png` | Correo de la alarma (ALARM y OK) recibido vía SNS | Bandeja del correo de `alarm_email` |
+| `16-grafana-fila5.png` | Fila **5. Logs** con errores y logs recientes | Grafana → dashboard `citibike-ep3` |
+| `17-pr-seguridad.png` | PR con dependencia vulnerable: Snyk en rojo y `BLOCKED` | `docs/TESTING.md` §6.1 (CitiBike-Infra) |
+| `18-deploy-ecs.png` | Resumen del job `Deploy en AWS ECS` (commit, revisiones y duración) | GitHub → Actions → CI/CD Flask Dashboard |
 
 ## Cómo capturar Grafana
 
