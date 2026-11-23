@@ -2,6 +2,6 @@ pandas>=2.3.3
 pyarrow
 scikit-learn==1.9.1
 joblib>=1.6.0
-boto3>=1.44.3
+boto3>=1.44.7
 numpy
 pyyaml>=6.0.3
