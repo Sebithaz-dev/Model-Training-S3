@@ -2,14 +2,14 @@
 
 **Asignatura:** DOY0101 — Ingeniería DevOps  
 **Carrera:** Ingeniería en Informática, mención Inteligencia Artificial  
-**Sección:** [COMPLETAR]  
-**Docente:** [COMPLETAR]  
+**Sección:** INGENIERIA DEVOPS_003D_OLS  
+**Docente:** Rodrigo Seguel  
 **Integrantes:**
 
-- Diego Hernández — [COMPLETAR: correo institucional]
+- Diego Hernández — d.hernandez3@duocuc.cl
 - Sebastián Escobar — se.escobarn@duocuc.cl
 
-**Fecha de entrega:** [COMPLETAR: dd/mm/aaaa]  
+**Fecha de entrega:** 24/11/2026  
 **Repositorios:**
 
 - [Model-Training-S3](https://github.com/Sebithaz-dev/Model-Training-S3)
@@ -17,7 +17,7 @@
 - [Flask-Dashboard-S3](https://github.com/Sebithaz-dev/Flask-Dashboard-S3)
 
 **Entorno de demostración:** AWS Learner Lab, cuenta `690247773624`, región `us-east-1`.
-Sesión documentada: **2026-11-19**. La URL del balanceador cambia si se recrea la
+Sesión documentada: **2026-11-23** (auditoría completa de cumplimiento: 2026-11-19). La URL del balanceador cambia si se recrea la
 infraestructura; se obtiene con:
 
 ```bash
@@ -73,15 +73,15 @@ request que quedó bloqueado.
 
 | Resultado | Valor observado | Evidencia |
 |---|---|---|
-| Servicios ECS en ejecución | 5/5 en `1/1` y `COMPLETED` | [`ecs-services.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261119T183438Z/ecs-services.txt) |
-| Target groups del ALB | 2/2 `healthy` | [`target-group-dashboard.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261119T183438Z/target-group-dashboard.txt), [`target-group-grafana.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261119T183438Z/target-group-grafana.txt) |
-| Endpoints del dashboard | `/health`, `/`, `/metrics` → 200 | [`http-status.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261119T183438Z/http-status.txt) |
-| Targets de Prometheus | 5/5 con `up=1` | [`prometheus-up.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261119T183438Z/prometheus-up.txt) |
-| Alarmas de CloudWatch | 7/7 en `OK` | [`cloudwatch-alarms.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261119T183438Z/cloudwatch-alarms.txt) |
-| Cobertura de tests de Flask | 83,61 % (29 tests) | [Run 44588927968](https://github.com/Sebithaz-dev/Flask-Dashboard-S3/actions/runs/44588927968) |
-| Duración de un despliegue | 127 s | [`cloudwatch-cicd-values.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261119T183438Z/cloudwatch-cicd-values.txt) |
+| Servicios ECS en ejecución | 5/5 en `1/1` y `COMPLETED` | [`ecs-services.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261123T003653Z/ecs-services.txt) |
+| Target groups del ALB | 2/2 `healthy` | [`target-group-dashboard.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261123T003653Z/target-group-dashboard.txt), [`target-group-grafana.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261123T003653Z/target-group-grafana.txt) |
+| Endpoints del dashboard | `/health`, `/`, `/metrics` → 200 | [`http-status.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261123T003653Z/http-status.txt) |
+| Targets de Prometheus | 5/5 con `up=1` | [`prometheus-up.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261123T003653Z/prometheus-up.txt) |
+| Alarmas de CloudWatch | 8/8 en `OK` | [`cloudwatch-alarms.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261123T003653Z/cloudwatch-alarms.txt) |
+| Cobertura de tests | Flask-Dashboard-S3 83,61 % (29 tests); Model-Training-S3 90,07 % (63 tests) | [`cloudwatch-cicd-values.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261123T003653Z/cloudwatch-cicd-values.txt) |
+| Duración de un despliegue | 138 s (job `deploy-ecs`) y 142 s (`deploy.sh`), `DeploymentSucceeded=1` | [`cloudwatch-cicd-values.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261123T003653Z/cloudwatch-cicd-values.txt) |
 | Auditoría de cumplimiento | 47 controles, 0 fallas, 0 no evaluables | [`compliance.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261119T183438Z/compliance.txt) |
-| Gate bloqueante demostrado | PR #24 en `BLOCKED` | [`ie6-gate-bloqueante.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261119T183438Z/ie6-gate-bloqueante.txt) |
+| Gate bloqueante demostrado | PR #28 (tests) y PR #27 (Snyk) en `BLOCKED` | [`ie6-gate-bloqueante.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261123T003653Z/ie6-gate-bloqueante.txt) |
 | Modelo en producción | ROC-AUC 0,6505; F1 0,4650; test 94.686 | [`README.md` — últimas métricas](https://github.com/Sebithaz-dev/Model-Training-S3/blob/main/README.md#últimas-métricas-test-temporal) |
 
 ---
@@ -286,15 +286,15 @@ microservicios.
 
 | # | Evidencia | Qué demuestra | Dónde verla | Resultado |
 |---|---|---|---|---|
-| 1 | Verificación end-to-end | 5 servicios ECS `1/1`, 2 targets `healthy`, 3 endpoints 200, Grafana OK | [`verify.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261119T183438Z/verify.txt) | `Todo OK` |
-| 2 | Targets de Prometheus | 5 series con `up=1` | [`prometheus-up.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261119T183438Z/prometheus-up.txt) | 5/5 |
-| 3 | Reglas de alerta | 6 reglas cargadas y en estado `inactive` | [`prometheus-rules.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261119T183438Z/prometheus-rules.txt) | 0 alertas activas |
-| 4 | Alarmas de CloudWatch | Alarmas en `OK` (7 en la sesión del 19-11; la octava, `deploy-failed`, se agregó después) | [`cloudwatch-alarms.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261119T183438Z/cloudwatch-alarms.txt) | 7/7 |
-| 5 | Códigos HTTP | `/health`, `/`, `/metrics`, Grafana | [`http-status.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261119T183438Z/http-status.txt) | 200 |
-| 6 | Métricas disponibles | Namespaces `CWAgent`, `ECS/ContainerInsights`, `CitiBike/CI`, `CitiBike/Model` | [`cloudwatch-metrics.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261119T183438Z/cloudwatch-metrics.txt) | Métricas publicando |
-| 7 | Dashboard de Grafana | 5 filas y 17 paneles (la fila 5 de logs se agregó después del 19-11) | [`citibike-ep3.json`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docker/grafana/dashboards/citibike-ep3.json) | 5 filas |
+| 1 | Verificación end-to-end | 5 servicios ECS `1/1`, 2 targets `healthy`, 3 endpoints 200, Grafana OK | [`verify.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261123T003653Z/verify.txt) | `Todo OK` |
+| 2 | Targets de Prometheus | 5 series con `up=1` | [`prometheus-up.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261123T003653Z/prometheus-up.txt) | 5/5 |
+| 3 | Reglas de alerta | 6 reglas cargadas y en estado `inactive` | [`prometheus-rules.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261123T003653Z/prometheus-rules.txt) | 0 alertas activas |
+| 4 | Alarmas de CloudWatch | Las 8 alarmas en `OK` | [`cloudwatch-alarms.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261123T003653Z/cloudwatch-alarms.txt) | 8/8 |
+| 5 | Códigos HTTP | `/health`, `/`, `/metrics`, Grafana | [`http-status.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261123T003653Z/http-status.txt) | 200 |
+| 6 | Métricas disponibles | Namespaces `CWAgent`, `ECS/ContainerInsights`, `CitiBike/CI`, `CitiBike/Model` | [`cloudwatch-metrics.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261123T003653Z/cloudwatch-metrics.txt) | Métricas publicando |
+| 7 | Dashboard de Grafana | 5 filas y 17 paneles (`verify.txt`: `dashboard citibike-ep3: 5 filas`) | [`citibike-ep3.json`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docker/grafana/dashboards/citibike-ep3.json) | 5 filas |
 | 8 | Grupos de logs | 5 grupos `/ecs/citibike-dev/*` con retención de 7 días | [`terraform/outputs.tf`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/terraform/outputs.tf) / [`ecs.tf`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/terraform/ecs.tf) | 5 grupos |
-| 9 | Falla controlada | Dashboard apagado → alarma `dashboard-unhealthy` en `ALARM` → correo SNS → recuperación a `OK` | `falla-controlada.txt` en la [carpeta de evidencia](https://github.com/Sebithaz-dev/CitiBike-Infra/tree/main/docs/evidence) de la sesión más reciente (`scripts/sesion_ep3.sh`), capturas 10 y 15 | `ALARM` → `OK` |
+| 9 | Falla controlada | Dashboard en 0 tareas → alarma `dashboard-unhealthy` en `ALARM` → recuperación a `OK` (sin correo: la suscripción SNS no se confirmó) | [`falla-controlada.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261123T003653Z/falla-controlada.txt), captura 10 | `ALARM` → `OK` |
 
 **Capturas:**
 
@@ -344,12 +344,12 @@ forma automatizada.
 
 | # | Evidencia | Qué demuestra | Dónde verla | Resultado |
 |---|---|---|---|---|
-| 1 | Servicios ECS | 5 servicios `ACTIVE`, `1/1`, rollout `COMPLETED` | [`ecs-services.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261119T183438Z/ecs-services.txt) | 5/5 |
-| 2 | Target groups | Targets del ALB en `healthy` | [`target-group-dashboard.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261119T183438Z/target-group-dashboard.txt), [`target-group-grafana.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261119T183438Z/target-group-grafana.txt) | 2/2 |
-| 3 | Endpoints | `/health`, `/`, `/metrics` responden 200 | [`http-status.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261119T183438Z/http-status.txt) | 200 |
-| 4 | Outputs de Terraform | ALB, cluster, instancia, log groups, URL interna de Prometheus | [`terraform-outputs.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261119T183438Z/terraform-outputs.txt) | Recursos creados |
-| 5 | Verificación | Servicios, targets, endpoints y Grafana | [`verify.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261119T183438Z/verify.txt) | `Todo OK` |
-| 6 | Duración de despliegue | `DeploymentDurationSeconds` | [`cloudwatch-cicd-values.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261119T183438Z/cloudwatch-cicd-values.txt) | 127 s |
+| 1 | Servicios ECS | 5 servicios `ACTIVE`, `1/1`, rollout `COMPLETED` | [`ecs-services.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261123T003653Z/ecs-services.txt) | 5/5 |
+| 2 | Target groups | Targets del ALB en `healthy` | [`target-group-dashboard.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261123T003653Z/target-group-dashboard.txt), [`target-group-grafana.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261123T003653Z/target-group-grafana.txt) | 2/2 |
+| 3 | Endpoints | `/health`, `/`, `/metrics` responden 200 | [`http-status.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261123T003653Z/http-status.txt) | 200 |
+| 4 | Outputs de Terraform | ALB, cluster, instancia, log groups, URL interna de Prometheus | [`terraform-outputs.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261123T003653Z/terraform-outputs.txt) | Recursos creados |
+| 5 | Verificación | Servicios, targets, endpoints y Grafana | [`verify.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261123T003653Z/verify.txt) | `Todo OK` |
+| 6 | Duración de despliegue | `DeploymentDurationSeconds` | [`cloudwatch-cicd-values.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261123T003653Z/cloudwatch-cicd-values.txt) | 138 s / 142 s |
 | 7 | Infraestructura como código | Recursos y configuraciones | [`terraform/`](https://github.com/Sebithaz-dev/CitiBike-Infra/tree/main/terraform) | `terraform plan` sin diferencias |
 | 8 | Decisión ECS vs EKS | Restricciones y consecuencias | [`docs/ARCHITECTURE.md`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/ARCHITECTURE.md) | Documentada |
 
@@ -383,8 +383,8 @@ CI/CD.
 
 | Métrica | Namespace | Origen | Valor observado |
 |---|---|---|---|
-| `DeploymentDurationSeconds` | `CitiBike/CI` | Job `deploy-ecs` (o `scripts/deploy.sh`) | 127 s (sesión 19-11, `deploy.sh`) |
-| `DeploymentSucceeded` | `CitiBike/CI` | Job `deploy-ecs` y `scripts/deploy.sh` | 1 por despliegue exitoso (`cloudwatch-cicd-values.txt` de la sesión más reciente) |
+| `DeploymentDurationSeconds` | `CitiBike/CI` | Job `deploy-ecs` (o `scripts/deploy.sh`) | 138 s (job `deploy-ecs`) y 142 s (`deploy.sh`), sesión 23-11 |
+| `DeploymentSucceeded` | `CitiBike/CI` | Job `deploy-ecs` y `scripts/deploy.sh` | 1 en ambos despliegues de la sesión 23-11 |
 | `TestCoveragePercent` (`Repo=Flask-Dashboard-S3`) | `CitiBike/CI` | CI de Flask | 83,61 % |
 | `TestCoveragePercent` (`Repo=Model-Training-S3`) | `CitiBike/CI` | CI de Model-Training | 90,07 % (mínimo exigido 60 %) |
 | `TestsPassed` | `CitiBike/CI` | CI de Flask | 29 |
@@ -398,8 +398,8 @@ CI/CD.
 | # | Evidencia | Qué demuestra | Dónde verla |
 |---|---|---|---|
 | 1 | Dashboard JSON | 5 filas y paneles definidos como código | [`citibike-ep3.json`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docker/grafana/dashboards/citibike-ep3.json) |
-| 2 | Verificación | Grafana con datasources y dashboard de 4 filas | [`verify.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261119T183438Z/verify.txt) |
-| 3 | Métricas de CI/CD | Valores en CloudWatch | [`cloudwatch-cicd-values.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261119T183438Z/cloudwatch-cicd-values.txt) |
+| 2 | Verificación | Grafana con datasources y dashboard de 5 filas | [`verify.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261123T003653Z/verify.txt) |
+| 3 | Métricas de CI/CD | Valores en CloudWatch | [`cloudwatch-cicd-values.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261123T003653Z/cloudwatch-cicd-values.txt) |
 | 4 | Métricas del modelo | `roc_auc`, `f1_score`, `QualityGatePassed` | [`ml/metrics_export.py`](https://github.com/Sebithaz-dev/Model-Training-S3/blob/main/ml/metrics_export.py), [`README.md` — últimas métricas](https://github.com/Sebithaz-dev/Model-Training-S3/blob/main/README.md#últimas-métricas-test-temporal) |
 | 5 | Cobertura publicada desde Flask | Workflow `ci-cd.yml` y run exitoso | [PR #25](https://github.com/Sebithaz-dev/Flask-Dashboard-S3/pull/25), [run 44588927968](https://github.com/Sebithaz-dev/Flask-Dashboard-S3/actions/runs/44588927968) |
 | 6 | Script de métricas | `ci_metrics.py` para workflows y tests | [`scripts/ci_metrics.py`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/scripts/ci_metrics.py) |
@@ -491,7 +491,7 @@ el pipeline ante fallas críticas de seguridad o calidad.
 
 | Falla | Detector | Efecto | Evidencia |
 |---|---|---|---|
-| Test roto o cobertura bajo el umbral | `Run tests` / `Lint y tests` | Check requerido rojo → merge bloqueado | [`ie6-gate-bloqueante.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261119T183438Z/ie6-gate-bloqueante.txt) |
+| Test roto o cobertura bajo el umbral | `Run tests` / `Lint y tests` | Check requerido rojo → merge bloqueado | [`ie6-gate-bloqueante.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261123T003653Z/ie6-gate-bloqueante.txt) |
 | Vulnerabilidad alta o crítica | `Snyk (SCA + Code)` | Check requerido rojo | [`security.yml`](https://github.com/Sebithaz-dev/Model-Training-S3/blob/main/.github/workflows/security.yml), demo en [`docs/TESTING.md` §6.1](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/TESTING.md) |
 | Deuda de calidad sobre el umbral | `SonarCloud` | Check requerido rojo | [`security.yml`](https://github.com/Sebithaz-dev/Model-Training-S3/blob/main/.github/workflows/security.yml) |
 | Modelo bajo el umbral | `ml/quality_gate.py` | `ml.train` no publica en S3 y el workflow falla | [`quality_gate.yaml`](https://github.com/Sebithaz-dev/Model-Training-S3/blob/main/config/quality_gate.yaml) |
@@ -513,7 +513,8 @@ el pipeline ante fallas críticas de seguridad o calidad.
 | `mergeStateStatus` | 🔒 `BLOCKED` |
 
 Evidencia: [`ie6-gate-bloqueante.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261119T183438Z/ie6-gate-bloqueante.txt)  
-PR (cerrado después de la captura): <https://github.com/Sebithaz-dev/Flask-Dashboard-S3/pull/24>
+PR (cerrado después de la captura): <https://github.com/Sebithaz-dev/Flask-Dashboard-S3/pull/24>  
+Repetido el 23-11 con el PR [#28](https://github.com/Sebithaz-dev/Flask-Dashboard-S3/pull/28) (mismo resultado, más `Deploy en AWS ECS` en `skipping`): [`ie6-gate-bloqueante.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261123T003653Z/ie6-gate-bloqueante.txt)
 
 **Quality gate del modelo (umbrales y valores):**
 
@@ -550,12 +551,12 @@ Para simular una falla sin tocar el modelo real, copiar `metricas.json` a
 
 | IE | Peso | Qué se exige | Evidencia principal | Evidencia complementaria | Estado |
 |---|---:|---|---|---|---|
-| **IE1** | 20 % | Monitoreo, logs, métricas y disponibilidad | [`verify.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261119T183438Z/verify.txt), [`prometheus-up.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261119T183438Z/prometheus-up.txt) | [`cloudwatch-alarms.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261119T183438Z/cloudwatch-alarms.txt), dashboard, logs | ✅ Implementado y verificado |
-| **IE2** | 20 % | Despliegue orquestado en la nube con observabilidad | [`ecs-services.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261119T183438Z/ecs-services.txt), [`target-group-dashboard.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261119T183438Z/target-group-dashboard.txt) | [`terraform-outputs.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261119T183438Z/terraform-outputs.txt), `terraform/` | ✅ Implementado y verificado |
-| **IE3** | 10 % | Dashboard con métricas de despliegue, cobertura, recursos y errores | [`citibike-ep3.json`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docker/grafana/dashboards/citibike-ep3.json), [`cloudwatch-cicd-values.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261119T183438Z/cloudwatch-cicd-values.txt) | [Run 44588927968](https://github.com/Sebithaz-dev/Flask-Dashboard-S3/actions/runs/44588927968), `ml/metrics_export.py` | ✅ Implementado con datos reales |
+| **IE1** | 20 % | Monitoreo, logs, métricas y disponibilidad | [`verify.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261123T003653Z/verify.txt), [`prometheus-up.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261123T003653Z/prometheus-up.txt) | [`cloudwatch-alarms.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261123T003653Z/cloudwatch-alarms.txt), dashboard, logs | ✅ Implementado y verificado |
+| **IE2** | 20 % | Despliegue orquestado en la nube con observabilidad | [`ecs-services.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261123T003653Z/ecs-services.txt), [`target-group-dashboard.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261123T003653Z/target-group-dashboard.txt) | [`terraform-outputs.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261123T003653Z/terraform-outputs.txt), `terraform/` | ✅ Implementado y verificado |
+| **IE3** | 10 % | Dashboard con métricas de despliegue, cobertura, recursos y errores | [`citibike-ep3.json`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docker/grafana/dashboards/citibike-ep3.json), [`cloudwatch-cicd-values.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261123T003653Z/cloudwatch-cicd-values.txt) | [Run 44588927968](https://github.com/Sebithaz-dev/Flask-Dashboard-S3/actions/runs/44588927968), `ml/metrics_export.py` | ✅ Implementado con datos reales |
 | **IE4** | 10 % | Documentar la integración y su impacto en decisiones | `README.md`, `docs/ARCHITECTURE.md`, `docs/RUNBOOK.md`, `docs/COMPLIANCE.md`, `docs/TESTING.md` | Este informe y sus secciones 5–9 | 🟡 Parcial: falta la narrativa del equipo y las reflexiones |
 | **IE5** | 20 % | Políticas de cumplimiento y auditoría automatizada | [`compliance.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261119T183438Z/compliance.txt), [`compliance.md`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261119T183438Z/compliance.md) | [`audit_compliance.py`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/scripts/audit_compliance.py), [`COMPLIANCE.md`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/COMPLIANCE.md) | ✅ 47/47 controles |
-| **IE6** | 20 % | Gates que detienen el pipeline ante fallas críticas | [`ie6-gate-bloqueante.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261119T183438Z/ie6-gate-bloqueante.txt) | [`quality_gate.yaml`](https://github.com/Sebithaz-dev/Model-Training-S3/blob/main/config/quality_gate.yaml), workflows, circuit breaker | ✅ Implementado y demostrado |
+| **IE6** | 20 % | Gates que detienen el pipeline ante fallas críticas | [`ie6-gate-bloqueante.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261123T003653Z/ie6-gate-bloqueante.txt) | [`quality_gate.yaml`](https://github.com/Sebithaz-dev/Model-Training-S3/blob/main/config/quality_gate.yaml), workflows, circuit breaker | ✅ Implementado y demostrado |
 
 **Cobertura de la rúbrica:** IE1, IE2, IE3, IE5 e IE6 están implementados y
 evidenciados (90 % de la ponderación). IE4 queda parcial hasta que el equipo
@@ -667,6 +668,14 @@ La captura completa está en
 [`ie6-gate-bloqueante.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261119T183438Z/ie6-gate-bloqueante.txt).
 El PR se cerró después de capturar la evidencia.
 
+En la sesión del 23-11 se repitió con el PR
+[#28](https://github.com/Sebithaz-dev/Flask-Dashboard-S3/pull/28)
+([`ie6-gate-bloqueante.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261123T003653Z/ie6-gate-bloqueante.txt)) y se probó el gate de seguridad con el PR
+[#27](https://github.com/Sebithaz-dev/Flask-Dashboard-S3/pull/27), que agrega
+`django==2.2`: `Snyk (SCA + Code)` y `security/snyk` en `fail` y el PR en
+`BLOCKED` ([`ie6-gate-seguridad.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261123T003653Z/ie6-gate-seguridad.txt)). Ambos PRs se
+cerraron sin mergear.
+
 ### 7.2 Caso del modelo: quality gate antes de S3
 
 `ml/train.py` evalúa las métricas contra `config/quality_gate.yaml`. Si alguna
@@ -700,12 +709,12 @@ Procedimiento reproducible para ver una alarma en vivo:
 
 | Endpoint | Estado | Evidencia |
 |---|---|---|
-| Dashboard ECS `/health` | 200 | [`http-status.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261119T183438Z/http-status.txt) |
-| Dashboard ECS `/` | 200 | [`http-status.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261119T183438Z/http-status.txt) |
-| Dashboard ECS `/metrics` | 200 | [`http-status.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261119T183438Z/http-status.txt) |
-| Grafana `/api/health` | 200 | [`http-status.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261119T183438Z/http-status.txt) |
-| Render `/health` | `up=1` | [`prometheus-up.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261119T183438Z/prometheus-up.txt) |
-| Prometheus | `up=1` | [`prometheus-up.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261119T183438Z/prometheus-up.txt) |
+| Dashboard ECS `/health` | 200 | [`http-status.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261123T003653Z/http-status.txt) |
+| Dashboard ECS `/` | 200 | [`http-status.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261123T003653Z/http-status.txt) |
+| Dashboard ECS `/metrics` | 200 | [`http-status.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261123T003653Z/http-status.txt) |
+| Grafana `/api/health` | 200 | [`http-status.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261123T003653Z/http-status.txt) |
+| Render `/health` | `up=1` | [`prometheus-up.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261123T003653Z/prometheus-up.txt) |
+| Prometheus | `up=1` | [`prometheus-up.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261123T003653Z/prometheus-up.txt) |
 
 ### 8.2 CI/CD
 
@@ -713,8 +722,8 @@ Procedimiento reproducible para ver una alarma en vivo:
 |---|---:|---|
 | Cobertura de tests de Flask | 83,61 % | [Run 44588927968](https://github.com/Sebithaz-dev/Flask-Dashboard-S3/actions/runs/44588927968) |
 | Tests de Flask | 29 pasados | [Run 44588927968](https://github.com/Sebithaz-dev/Flask-Dashboard-S3/actions/runs/44588927968) |
-| Duración del despliegue | 127 s | [`cloudwatch-cicd-values.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261119T183438Z/cloudwatch-cicd-values.txt) |
-| `QualityGatePassed` (CI) | 1 | [`cloudwatch-cicd-values.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261119T183438Z/cloudwatch-cicd-values.txt) |
+| Duración del despliegue | 138 s (`deploy-ecs`) / 142 s (`deploy.sh`) | [`cloudwatch-cicd-values.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261123T003653Z/cloudwatch-cicd-values.txt) |
+| `QualityGatePassed` (CI) | 1 | [`cloudwatch-cicd-values.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261123T003653Z/cloudwatch-cicd-values.txt) |
 | Controles de cumplimiento | 47/47 | [`compliance.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261119T183438Z/compliance.txt) |
 
 ### 8.3 Modelo
@@ -792,13 +801,13 @@ y [`quality_gate.yaml`](https://github.com/Sebithaz-dev/Model-Training-S3/blob/m
 despliegue y gates? ¿Qué decisión técnica fue la más difícil y por qué? ¿Qué
 harían distinto en una próxima entrega? Extensión sugerida: 3–5 párrafos.]
 
-### 10.2 Reflexión individual — [Nombre completo 1]
+### 10.2 Reflexión individual — Diego Hernández
 
 [VACÍO — escribir aquí, sin IA. Guía: ¿qué aporté al proyecto? ¿Qué aprendí?
 ¿Qué herramienta o concepto me costó más y cómo lo resolví? ¿Qué evidencia de mi
 trabajo puedo señalar? Extensión sugerida: 2–4 párrafos.]
 
-### 10.3 Reflexión individual — [Nombre completo 2]
+### 10.3 Reflexión individual — Sebastián Escobar
 
 [VACÍO — escribir aquí, sin IA. Guía: ¿qué aporté al proyecto? ¿Qué aprendí?
 ¿Qué herramienta o concepto me costó más y cómo lo resolví? ¿Qué evidencia de mi
@@ -809,7 +818,7 @@ trabajo puedo señalar? Extensión sugerida: 2–4 párrafos.]
 ## Anexo A — Índice de evidencia
 
 Carpeta completa:
-[`CitiBike-Infra/docs/evidence/20261119T183438Z/`](https://github.com/Sebithaz-dev/CitiBike-Infra/tree/main/docs/evidence/20261119T183438Z)
+[`CitiBike-Infra/docs/evidence/20261123T003653Z/`](https://github.com/Sebithaz-dev/CitiBike-Infra/tree/main/docs/evidence/20261123T003653Z)
 
 | Archivo | Contenido |
 |---|---|
@@ -826,8 +835,11 @@ Carpeta completa:
 | `cloudwatch-alarms.txt` | Alarmas de CloudWatch y su estado |
 | `cloudwatch-metrics.txt` | Métricas disponibles por namespace |
 | `cloudwatch-cicd-values.txt` | Últimos valores de las métricas de CI/CD |
-| `compliance.txt` / `compliance.md` | Auditoría de cumplimiento de los 3 repos |
-| `ie6-gate-bloqueante.txt` | Evidencia del PR bloqueado por el gate |
+| `compliance.txt` / `compliance.md` | Auditoría de los 3 repos con un token sin permisos de administración (29 controles, 0 fallas, 6 no evaluables); la auditoría completa, 47/47, es la de [`20261119T183438Z`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261119T183438Z/compliance.txt) |
+| `ie6-gate-bloqueante.txt` | PR #28 bloqueado por el gate de tests |
+| `ie6-gate-seguridad.txt` | PR #27 bloqueado por Snyk |
+| `falla-controlada.txt` | Alarma `dashboard-unhealthy`: `OK` → `ALARM` → `OK` |
+| `deploy.txt` | Despliegue medido con `deploy.sh` (142 s) |
 
 ## Anexo B — Comandos de reproducción
 

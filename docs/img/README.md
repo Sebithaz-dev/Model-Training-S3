@@ -27,7 +27,8 @@ Markdown.
 
 ## Cómo capturar Grafana
 
-1. Abrir `http://<alb-dns>:3000` con `admin` / `citibike-ep3`.
+1. Abrir `http://<alb-dns>:3000` con el usuario `admin`; la contraseña se obtiene con
+   `terraform -chdir=terraform output -raw grafana_admin_password` (CitiBike-Infra).
 2. Elegir el rango de tiempo **Last 30 minutes**.
 3. Usar el menú **Share → Snapshot** o una captura de pantalla de la fila.
 4. Guardar con el nombre exacto de la tabla.
