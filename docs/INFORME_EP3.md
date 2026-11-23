@@ -585,7 +585,7 @@ Para simular una falla sin tocar el modelo real, copiar `metricas.json` a
 | **IE1** | 20 % | Monitoreo, logs, métricas y disponibilidad | [`verify.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261123T003653Z/verify.txt), [`prometheus-up.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261123T003653Z/prometheus-up.txt) | [`cloudwatch-alarms.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261123T003653Z/cloudwatch-alarms.txt), dashboard, logs | ✅ Implementado y verificado |
 | **IE2** | 20 % | Despliegue orquestado en la nube con observabilidad | [`ecs-services.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261123T003653Z/ecs-services.txt), [`target-group-dashboard.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261123T003653Z/target-group-dashboard.txt) | [`terraform-outputs.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261123T003653Z/terraform-outputs.txt), `terraform/` | ✅ Implementado y verificado |
 | **IE3** | 10 % | Dashboard con métricas de despliegue, cobertura, recursos y errores | [`citibike-ep3.json`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docker/grafana/dashboards/citibike-ep3.json), [`cloudwatch-cicd-values.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261123T003653Z/cloudwatch-cicd-values.txt) | [Run 44588927968](https://github.com/Sebithaz-dev/Flask-Dashboard-S3/actions/runs/44588927968), `ml/metrics_export.py` | ✅ Implementado con datos reales |
-| **IE4** | 10 % | Documentar la integración y su impacto en decisiones | `README.md`, `docs/ARCHITECTURE.md`, `docs/RUNBOOK.md`, `docs/COMPLIANCE.md`, `docs/TESTING.md` | Este informe y sus secciones 5–9 | 🟡 Parcial: falta la narrativa del equipo y las reflexiones |
+| **IE4** | 10 % | Documentar la integración y su impacto en decisiones | `README.md`, `docs/ARCHITECTURE.md`, `docs/RUNBOOK.md`, `docs/COMPLIANCE.md`, `docs/TESTING.md` | Este informe y sus secciones 5–9 | ✅ |
 | **IE5** | 20 % | Políticas de cumplimiento y auditoría automatizada | [`compliance.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261119T183438Z/compliance.txt), [`compliance.md`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261119T183438Z/compliance.md) | [`audit_compliance.py`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/scripts/audit_compliance.py), [`COMPLIANCE.md`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/COMPLIANCE.md) | ✅ 47/47 controles |
 | **IE6** | 20 % | Gates que detienen el pipeline ante fallas críticas | [`ie6-gate-bloqueante.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261123T003653Z/ie6-gate-bloqueante.txt) | [`quality_gate.yaml`](https://github.com/Sebithaz-dev/Model-Training-S3/blob/main/config/quality_gate.yaml), workflows, circuit breaker | ✅ Implementado y demostrado |
 
@@ -838,21 +838,71 @@ y [`quality_gate.yaml`](https://github.com/Sebithaz-dev/Model-Training-S3/blob/m
 
 ### 10.1 Conclusiones del equipo
 
-[VACÍO — escribir aquí. Guía: ¿qué aprendió el equipo sobre observabilidad,
-despliegue y gates? ¿Qué decisión técnica fue la más difícil y por qué? ¿Qué
-harían distinto en una próxima entrega? Extensión sugerida: 3–5 párrafos.]
+La principal lección de esta entrega es que observar un sistema no es lo mismo
+que tener métricas. Al principio publicábamos datos en CloudWatch y Prometheus,
+pero recién al provocar una falla controlada vimos el ciclo completo: el servicio
+cae, la alarma pasa a `ALARM`, el dashboard se pone en rojo y, al recuperarse,
+todo vuelve a `OK`. Esa prueba nos dio más confianza que cualquier captura de un
+sistema sano.
+
+También entendimos que un gate solo sirve si de verdad bloquea. Los checks de
+tests, cobertura, Snyk y SonarCloud existían desde la EP2, pero recién al
+hacerlos obligatorios en la protección de `main` y demostrarlo con PRs de prueba
+(un test roto y una dependencia vulnerable) pasaron de ser advertencias a ser
+reglas.
+
+La decisión más difícil fue usar ECS en lugar de Kubernetes. Implicó dejar de
+lado lo que habíamos hecho con `kind` en la EP2 y adaptarnos a las restricciones
+del Learner Lab: sin roles de IAM propios, una sola instancia y credenciales que
+vencen cada cuatro horas. Tuvimos que resolver problemas que no esperábamos,
+como redesplegar servicios con red de host en una sola instancia o recursos que
+quedaron vivos de una sesión anterior.
+
+En una próxima entrega haríamos las sesiones en AWS antes, no al final, y
+destruiríamos el entorno siempre con el mismo estado de Terraform, para que la
+evidencia y el código avancen juntos. También automatizaríamos las capturas
+desde el inicio.
 
 ### 10.2 Reflexión individual — Diego Hernández
 
-[VACÍO — escribir aquí, sin IA. Guía: ¿qué aporté al proyecto? ¿Qué aprendí?
-¿Qué herramienta o concepto me costó más y cómo lo resolví? ¿Qué evidencia de mi
-trabajo puedo señalar? Extensión sugerida: 2–4 párrafos.]
+Mi aporte se centró en el pipeline y en cerrar el ciclo entre CI/CD y la
+operación. En la EP2 armé los workflows de CI/CD, la validación de datos de
+entrada y la configuración externa del modelo, y pasé el repositorio a trunk
+based development. En esta entrega agregué el despliegue automático en ECS desde
+el pipeline de Flask, las alarmas de los gates con notificación por SNS, la fila
+de logs en Grafana, el script que ejecuta la sesión completa y la demostración
+del gate de seguridad (Flask-Dashboard-S3 #26 y CitiBike-Infra #17 y #18).
+
+Lo que más me costó fue entender por qué algo que "funcionaba" no se veía. Un
+ejemplo fue el dashboard: las filas de recursos y CI/CD mostraban *No data* aunque
+las métricas estaban en CloudWatch. Lo resolví consultando la API de Grafana
+directamente, lo que me permitió separar el problema de los datos del problema
+de la visualización, y lo corregí en CitiBike-Infra #19.
+
+Aprendí que la evidencia tiene que salir del sistema real y no de lo que uno
+espera que pase: varias veces el informe decía algo que la última sesión no
+respaldaba, y eso solo se nota contrastando cada afirmación con un archivo.
 
 ### 10.3 Reflexión individual — Sebastián Escobar
 
-[VACÍO — escribir aquí, sin IA. Guía: ¿qué aporté al proyecto? ¿Qué aprendí?
-¿Qué herramienta o concepto me costó más y cómo lo resolví? ¿Qué evidencia de mi
-trabajo puedo señalar? Extensión sugerida: 2–4 párrafos.]
+Mi aporte estuvo en la infraestructura, la seguridad y el modelo. Construí la
+infraestructura de ECS con Terraform y corregí los problemas que aparecieron al
+levantarla en el Learner Lab, como el arranque del agente ECS y el redespliegue
+de servicios con red de host en una sola instancia (CitiBike-Infra #10 y #14).
+También hice el script de verificación, las alarmas de CloudWatch, el auditor de
+cumplimiento y la recolección de evidencia (CitiBike-Infra #7, #11 y #12).
+
+En el lado de calidad integré Snyk y SonarCloud en los repositorios, ajusté los
+escaneos para los PRs de Dependabot y corregí una vulnerabilidad real de
+gunicorn que detectó Snyk (Flask-Dashboard-S3 #14). En el modelo implementé
+HistGradientBoosting con split temporal y el quality gate que publica sus
+métricas en CloudWatch (Model-Training-S3 #18 y #20).
+
+Lo que más me costó fue la infraestructura en un entorno tan limitado: no poder
+crear roles de IAM y tener una sola instancia obligó a buscar soluciones
+distintas a las de la documentación oficial. Aprendí a leer los eventos de ECS y
+los logs de arranque de la instancia para encontrar la causa real de cada falla
+antes de cambiar código.
 
 ---
 
