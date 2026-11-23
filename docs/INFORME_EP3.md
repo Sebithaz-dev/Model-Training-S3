@@ -321,7 +321,6 @@ microservicios.
 ![Logs en CloudWatch](img/06-cloudwatch-logs.png)
 ![Fila 5: logs en Grafana](img/16-grafana-fila5.png)
 ![Falla controlada: alarma en ALARM](img/10-falla-controlada.png)
-![Correo de la alarma (SNS)](img/15-correo-sns.png)
 
 **Limitaciones a mencionar:** retención de Prometheus de 6 h (disco efímero);
 Alertmanager no envía correo (las notificaciones salen por las alarmas de
