@@ -144,7 +144,17 @@ orquestado en la nube**, **dashboards**, **políticas de cumplimiento** y
 > **ECS on EC2** en lugar de EKS, con autorización del docente del curso por
 > costos. La decisión y sus consecuencias están en
 > [`CitiBike-Infra/docs/ARCHITECTURE.md` §Decisión 1](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/ARCHITECTURE.md).
-> `[COMPLETAR: explicar con palabras propias por qué se eligió ECS y qué se gana/pierde.]`
+> Elegimos ECS por dos razones. Primero, EKS no es viable en el Learner Lab:
+> necesita crear roles de IAM para el clúster y los nodos, y esa creación está
+> bloqueada para cuentas de estudiante. Segundo, por costo: tenemos USD 50 de crédito
+> en total, y solo el plano de control de EKS cuesta cerca de USD 0,10 por hora
+> (unos USD 73 al mes) antes de sumar nodos. Con ECS on EC2 pagamos únicamente
+> una instancia y el balanceador. Además, el sistema son cinco contenedores
+> pequeños en una sola instancia, así que no necesita la complejidad ni la carga
+> cognitiva de Kubernetes. Ganamos un despliegue más barato, rápido de levantar y
+> destruir, y fácil de operar con Terraform. Perdimos el estándar de Kubernetes
+> (manifiestos, Helm, ecosistema de operadores) y la alta disponibilidad
+> multi-nodo; esos puntos quedan como mejora futura si el sistema creciera.
 
 ---
 
@@ -236,7 +246,14 @@ Consecuencias documentadas:
 - La instancia es un único punto de falla, aceptado para una demo académica y
   cubierto por el runbook.
 
-> `[COMPLETAR: redactar la justificación final de la decisión con las palabras del equipo.]`
+> En resumen, ECS on EC2 fue la opción que nos permitía cumplir la pauta dentro de
+> las restricciones reales del Learner Lab: sin roles de IAM propios y con un
+> crédito limitado. Aceptamos conscientemente sus desventajas (una sola instancia
+> y ninguna alta disponibilidad) porque el objetivo de esta evaluación era
+> demostrar observabilidad y gates sobre un entorno orquestado, no operar un
+> servicio de producción. Si el proyecto tuviera presupuesto y permisos, el paso
+> natural sería migrar a EKS o a ECS con varias instancias en distintas zonas,
+> reutilizando los mismos contenedores, métricas y alarmas.
 
 ### 2.5 Configuración como código y trazabilidad
 
@@ -359,7 +376,14 @@ forma automatizada.
 ![Servicios ECS en la consola](img/12-ecs-servicios.png)
 ![Target groups healthy](img/13-target-groups.png)
 
-> `[COMPLETAR sin IA: por qué ECS sigue cumpliendo el concepto de “entorno orquestado”.]`
+> ECS sigue siendo un entorno orquestado porque nosotros no lanzamos ni vigilamos
+> los contenedores a mano: declaramos en Terraform cuántas tareas debe tener cada
+> servicio y ECS se encarga de programarlas, reiniciarlas si caen y reemplazarlas
+> en cada despliegue con un rolling update. Lo comprobamos en la falla controlada:
+> al volver el servicio a una tarea deseada, ECS levantó el contenedor solo, el
+> target group lo marcó `healthy` y la alarma volvió a `OK`. Además, el circuit
+> breaker revierte un despliegue que no estabiliza. Es la misma idea de estado
+> deseado que usa Kubernetes, aunque con un plano de control administrado por AWS.
 
 ---
 
@@ -410,7 +434,14 @@ CI/CD.
 ![Fila 4: CI/CD y modelo](img/04-grafana-fila4.png)
 ![Resumen del job deploy-ecs](img/18-deploy-ecs.png)
 
-> `[COMPLETAR sin IA: cómo un valor del dashboard cambia una decisión técnica (por ejemplo, cobertura bajo el umbral o latencia p95 alta).]`
+> Un caso real nos pasó en la sesión del 23-11: las filas 3 y 4 del dashboard
+> mostraban *No data* aunque las métricas existían en CloudWatch. En vez de
+> asumir que el pipeline no estaba publicando, consultamos la API de Grafana y
+> vimos que los datos sí llegaban; el problema era que a las consultas les
+> faltaban campos y Grafana ni siquiera las enviaba. Esa señal nos llevó a corregir
+> el dashboard (PR #19 de CitiBike-Infra) antes de sacar las capturas. Del mismo
+> modo, si el panel de cobertura bajara del 70 % en Flask, no mergearíamos el
+> cambio hasta agregar tests.
 
 ---
 
@@ -593,8 +624,13 @@ complete la narrativa de las secciones 5–9 y la sección 10.
 | Servicio caído | Reiniciar/rollback; revisar `verify.sh` | Alarma `dashboard-unhealthy` |
 | Auditoría con fallas | Corregir gobierno antes de seguir | `Auditoria de cumplimiento` |
 
-> `[COMPLETAR: explicar con un ejemplo real cómo una de estas señales cambió una
-> decisión del equipo. No usar IA para esta justificación.]`
+> El ejemplo más claro fue el gate de seguridad: abrimos un PR que agregaba
+> `django==2.2` y Snyk lo marcó en rojo por vulnerabilidades críticas, dejando el
+> PR en `BLOCKED` (PR #27 de Flask-Dashboard-S3). La decisión fue no mergear y
+> cerrar el PR; en un caso real habríamos actualizado la dependencia. También el
+> PR #28, con un test que falla, publicó `QualityGatePassed=0`: la alarma
+> `ci-gate-failed` pasó a `ALARM` y nos recordó que esa señal también llega a la
+> operación, no solo a GitHub.
 
 ### 5.3 Documentación de soporte
 
@@ -642,8 +678,13 @@ La auditoría recorre los tres repositorios y verifica:
 - [`scripts/audit_compliance.py`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/scripts/audit_compliance.py)
 - [`docs/COMPLIANCE.md`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/COMPLIANCE.md)
 
-> `[COMPLETAR: explicar cómo se aplicaron las políticas y qué control les pareció
-> más útil. Esta justificación debe ser propia.]`
+> Aplicamos las políticas como código y no como una lista para revisar a mano:
+> la protección de `main`, los checks obligatorios, CODEOWNERS, Dependabot y el
+> secret scanning están configurados en los tres repositorios, y
+> `audit_compliance.py` los verifica en cada PR. El control que más nos sirvió fue
+> la protección de rama con checks obligatorios, porque convierte a todos los
+> demás (tests, cobertura, Snyk, SonarCloud) en una regla real: sin ella, un check
+> en rojo sería solo una advertencia y el código igual podría llegar a `main`.
 
 ---
 
