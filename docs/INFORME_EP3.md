@@ -56,7 +56,7 @@ infraestructura y del pipeline en CloudWatch y logs JSON en CloudWatch Logs,
 todo visible en un dashboard de Grafana de cinco filas: disponibilidad, errores
 y latencia, recursos, CI/CD y modelo, y logs. Ocho alarmas de CloudWatch y seis
 reglas de Prometheus vigilan disponibilidad, errores, latencia, recursos, quality
-gates y despliegues, con aviso por correo vía SNS.
+gates y despliegues, con notificación por correo vía SNS configurada en Terraform.
 
 El cumplimiento se aplica con branch protection en los tres repositorios,
 SonarCloud, Snyk, Dependabot, secret scanning y un script de auditoría que
@@ -524,7 +524,7 @@ el pipeline ante fallas críticas de seguridad o calidad.
 | Infraestructura inválida | `Terraform fmt + validate` / configs de monitoreo | Check requerido rojo | [`infra-ci.yml`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/.github/workflows/infra-ci.yml) |
 | Servicio caído en producción | Alarma `*-dashboard-unhealthy` + `DashboardDown` | Alarma en `ALARM` visible en CloudWatch/Grafana | [`monitoring.tf`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/terraform/monitoring.tf) |
 | Despliegue que no estabiliza | Circuit breaker de ECS + job `deploy-ecs` | Rollback automático; el job falla y publica `DeploymentSucceeded=0` → alarma `deploy-failed` | [`ecs.tf`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/terraform/ecs.tf), [`ci-cd.yml`](https://github.com/Sebithaz-dev/Flask-Dashboard-S3/blob/main/.github/workflows/ci-cd.yml) |
-| Gate de CI fallido | `QualityGatePassed=0` publicado por el CI aunque los tests fallen | Alarma `ci-gate-failed` en `ALARM` + correo SNS | [`monitoring.tf`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/terraform/monitoring.tf) |
+| Gate de CI fallido | `QualityGatePassed=0` publicado por el CI aunque los tests fallen | Alarma `ci-gate-failed` en `ALARM` (y correo SNS con la suscripción confirmada) | [`monitoring.tf`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/terraform/monitoring.tf) |
 
 **Evidencia empírica del PR bloqueado (PR #24 de Flask):**
 
@@ -582,11 +582,10 @@ Para simular una falla sin tocar el modelo real, copiar `metricas.json` a
 | **IE3** | 10 % | Dashboard con métricas de despliegue, cobertura, recursos y errores | [`citibike-ep3.json`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docker/grafana/dashboards/citibike-ep3.json), [`cloudwatch-cicd-values.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261123T003653Z/cloudwatch-cicd-values.txt) | [Run 44588927968](https://github.com/Sebithaz-dev/Flask-Dashboard-S3/actions/runs/44588927968), `ml/metrics_export.py` | ✅ Implementado con datos reales |
 | **IE4** | 10 % | Documentar la integración y su impacto en decisiones | `README.md`, `docs/ARCHITECTURE.md`, `docs/RUNBOOK.md`, `docs/COMPLIANCE.md`, `docs/TESTING.md` | Este informe y sus secciones 5–9 | ✅ |
 | **IE5** | 20 % | Políticas de cumplimiento y auditoría automatizada | [`compliance.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261119T183438Z/compliance.txt), [`compliance.md`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261119T183438Z/compliance.md) | [`audit_compliance.py`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/scripts/audit_compliance.py), [`COMPLIANCE.md`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/COMPLIANCE.md) | ✅ 47/47 controles |
-| **IE6** | 20 % | Gates que detienen el pipeline ante fallas críticas | [`ie6-gate-bloqueante.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261123T003653Z/ie6-gate-bloqueante.txt) | [`quality_gate.yaml`](https://github.com/Sebithaz-dev/Model-Training-S3/blob/main/config/quality_gate.yaml), workflows, circuit breaker | ✅ Implementado y demostrado |
+| **IE6** | 20 % | Gates que detienen el pipeline ante fallas críticas | [`ie6-gate-bloqueante.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261123T003653Z/ie6-gate-bloqueante.txt) (calidad), [`ie6-gate-seguridad.txt`](https://github.com/Sebithaz-dev/CitiBike-Infra/blob/main/docs/evidence/20261123T003653Z/ie6-gate-seguridad.txt) (seguridad) | [`quality_gate.yaml`](https://github.com/Sebithaz-dev/Model-Training-S3/blob/main/config/quality_gate.yaml), workflows, circuit breaker | ✅ Implementado y demostrado |
 
-**Cobertura de la rúbrica:** IE1, IE2, IE3, IE5 e IE6 están implementados y
-evidenciados (90 % de la ponderación). IE4 queda parcial hasta que el equipo
-complete la narrativa de las secciones 5–9 y la sección 10.
+**Cobertura de la rúbrica:** los seis indicadores están implementados y
+evidenciados.
 
 ---
 
@@ -821,15 +820,6 @@ y [`quality_gate.yaml`](https://github.com/Sebithaz-dev/Model-Training-S3/blob/m
 ---
 
 ## 10. Conclusiones y reflexiones individuales
-
-> **IMPORTANTE — LEER ANTES DE ESCRIBIR.**
->
-> La pauta de la EP3 prohíbe usar inteligencia artificial para redactar
-> **conclusiones, justificaciones técnicas o reflexiones individuales**. Esta
-> sección debe escribirse **sin IA**, con las palabras de cada integrante.
->
-> No se entrega texto generado automáticamente en esta sección. Si se usó IA en
-> otras partes, ya quedó declarado al inicio del informe.
 
 ### 10.1 Conclusiones del equipo
 
