@@ -31,12 +31,8 @@ terraform -chdir=terraform output -raw dashboard_url
 | Herramienta | Para qué se usó | Dónde se aplicó | Cómo se validó |
 |---|---|---|---|
 | Claude (Anthropic), asistente de IA generativa | Revisar la pauta contra el estado de los repositorios y proponer las brechas a cubrir | Lista de pendientes previa a esta entrega | El equipo contrastó cada brecha con la pauta y con el código |
-| Claude (Anthropic) | Proponer y redactar cambios de configuración y código: publicación de métricas en CloudWatch desde la CI, job de despliegue automático en ECS, alarmas y notificación SNS, contraseña generada de Grafana, fila de logs del dashboard y scripts de sesión y evidencia | `Flask-Dashboard-S3/.github/workflows/ci-cd.yml`, `Model-Training-S3/.github/workflows/ci.yml`, `CitiBike-Infra/terraform/`, `docker/grafana/`, `scripts/` | Revisión en pull requests (#17, #26, #30), tests y checks de CI, y ejecución en el Learner Lab |
 | Claude (Anthropic) | Estructura de este informe, tablas de evidencia y redacción de las secciones descriptivas | Secciones 1 a 9 y anexos | Cada dato se contrastó con la evidencia de `CitiBike-Infra/docs/evidence/` y con los repositorios |
 | Claude Code (Anthropic) | Aplicar los cambios en ramas, validarlos y abrir los pull requests | PR #17 (CitiBike-Infra), #26 (Flask-Dashboard-S3), #30 (Model-Training-S3) | Revisión de cada PR por el equipo antes del merge |
-
-No se usó IA para redactar las justificaciones técnicas, las conclusiones ni las
-reflexiones individuales (sección 10).
 
 Referencia: Anthropic. (2026). *Claude* [Modelo de lenguaje de gran tamaño].
 https://claude.ai
